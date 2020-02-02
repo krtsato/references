@@ -9,7 +9,7 @@ goenv は導入せず, グローバルで小規模に最新の Golang を動か�
 
 開発時には Docker で環境構築をする．  
 今後, VSCode Remote Container を使用する予定．  
-[SCodeとDockerでMacにGolangの開発環境を作成する](https://dev.classmethod.jp/devenv/vscode-remote-containers-golang/)
+[VSCodeとDockerでMacにGolangの開発環境を作成する](https://dev.classmethod.jp/devenv/vscode-remote-containers-golang/)
 
 ```zsh
 % brew install go
