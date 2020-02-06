@@ -88,7 +88,7 @@ const [foo, setFoo] = useState(100)
 const [bar, setBar] = useState('Inital Bar')
 ```
 
-`useState()` はグローバルな配列に state 値を追加しており，
+`useState()` はグローバルな配列に state 値を追加しており  
 条件文などでくるんでしまうと配列の順番がおかしくなるため．
 
 <br>
@@ -143,13 +143,13 @@ const memoVal = useMemo(() => {
     - コンポーネント
   - 第２引数
     - 省略した場合
-      - レンダリングの度に `calculateSomething()`  を実行
+      - レンダリングの度に `calculateSomething()`  の結果を返却
       - 無意味なので基本的に省略しない
     - 空配列の場合
-      - 初回レンダリング時に第１引数の結果が返される
+      - 初回レンダリング時に `calculateSomething()`  の結果を返却
     - 配列要素に変数を指定した場合
-      - 初回レンダリング時に `calculateSomething()`  を実行
-      - 前回のレンダリング時と差分があれば第１引数の結果が返される
+      - 初回レンダリング時に `calculateSomething()`  の結果を返却
+      - 前回のレンダリング時と差分があれば `calculateSomething()`  の結果を返却
 
 <br>
 
@@ -177,7 +177,7 @@ const Parent = ({a, b}) => {
 - 再レンダリングによる関数の再定義を避けることが目的
 - 副作用処理には `useEffect()` を使う
 - 基本的な挙動は `useMemo()` と同じ
-  - `戻り値が関数である点が異なる
+  - 戻り値が関数である点が異なる
 
 ```js
 const memoFunc = useCallback(() => {
@@ -185,7 +185,7 @@ const memoFunc = useCallback(() => {
 }, [watchVar])
 ```
 
-例えば，子コンポーネントに対しては  
+例えば子コンポーネントに対しては  
 `useCallback()` を通した関数の参照を渡すと良い．
 
 ```js
