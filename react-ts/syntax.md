@@ -314,9 +314,8 @@ const MeasuredTag = () => {
 
 <br>
 
-### Other Hooks
+### Other Hooks API
 
-- Custom Hook
 - useContext
 - useReducer
 - useImperativeHandle
