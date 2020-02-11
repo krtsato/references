@@ -1,5 +1,19 @@
 # React
 
+- [基礎知識](#基礎知識)
+  - [Local State](#local-state)
+  - [ライフサイクル](#ライフサイクル)
+  - [Functional Component](#functional-component)
+  - [コンポーネントの作り方](#コンポーネントの作り方)
+- [Hooks](#hooks)
+  - [State Hook](#state-hook)
+  - [Effect Hook](#effect-hook)
+  - [useMemo](#usememo)
+  - [useCallback](#usecallback)
+  - [useRef](#useref)
+  - [Other Hooks API](#other-hooks-api)
+- [参考文献](#参考文献)
+
 ## 基礎知識
 
 ### Local State
@@ -45,7 +59,7 @@ cf. Class Component
 ### コンポーネントの作り方
 
 Class Component / Function Component とは別の切り口で  
-コンポーネントを分類する  
+コンポーネントを分類する
 
 - Presentational Component : 見た目を担うコンポーネント
 - Container Component : 処理を担うコンポーネント
@@ -57,7 +71,7 @@ Class Component / Function Component とは別の切り口で
 1. FC で見た目だけを整えた Presentational Component を作る
 2. Presentational Component からスタイルガイドを作る
 3. Presentational Component を import して Hooks や HOC で機能を追加する
-4. ロジックを抽出して `useHoge()`  という Custom Hook を定義する
+4. ロジックを抽出して `useHoge()` という Custom Hook を定義する
 5. できあがった Container Component の機能だけをテストする
 
 詳細は repository : react-redux-saga-ts-prac
@@ -73,19 +87,19 @@ Functional Component でも使えるようにする．
 
 ```js
 // 初期化
-const [count, setCount] = useState(0)
+const [count, setCount] = useState(0);
 
 // 状態更新
-setCount(100)
-setCount(prev => prev + 1) // 引数に関数も指定できる
+setCount(100);
+setCount(prev => prev + 1); // 引数に関数も指定できる
 ```
 
 `useState()` を使って複数の Local State を設定するとき  
 関数定義は `useState()` をプレーンに連ねて書く．
 
 ```js
-const [foo, setFoo] = useState(100)
-const [bar, setBar] = useState('Inital Bar')
+const [foo, setFoo] = useState(100);
+const [bar, setBar] = useState("Inital Bar");
 ```
 
 `useState()` はグローバルな配列に state 値を追加しており  
@@ -103,9 +117,9 @@ const [bar, setBar] = useState('Inital Bar')
 
 ```js
 useEffect(() => {
-  doSomething()
-  return clearSomething()
-}, [watchVar])
+  doSomething();
+  return clearSomething();
+}, [watchVar]);
 ```
 
 - 挙動
@@ -133,8 +147,8 @@ useEffect(() => {
 
 ```js
 const memoVal = useMemo(() => {
-  calculateSomething()
-}, [watchVar])
+  calculateSomething();
+}, [watchVar]);
 ```
 
 - 挙動
@@ -143,13 +157,13 @@ const memoVal = useMemo(() => {
     - コンポーネント
   - 第２引数
     - 省略した場合
-      - レンダリングの度に `calculateSomething()`  の結果を返却
+      - レンダリングの度に `calculateSomething()` の結果を返却
       - 無意味なので基本的に省略しない
     - 空配列の場合
-      - 初回レンダリング時に `calculateSomething()`  の結果を返却
+      - 初回レンダリング時に `calculateSomething()` の結果を返却
     - 配列要素に変数を指定した場合
-      - 初回レンダリング時に `calculateSomething()`  の結果を返却
-      - 前回のレンダリング時と差分があれば `calculateSomething()`  の結果を返却
+      - 初回レンダリング時に `calculateSomething()` の結果を返却
+      - 前回のレンダリング時と差分があれば `calculateSomething()` の結果を返却
 
 <br>
 
@@ -158,17 +172,17 @@ Class Component における `shouldComponentUpdate()` の代替機能を実装�
 
 ```js
 // props.a/b が変更 -> childA/B を再レンダリング
-const Parent = ({a, b}) => {
-  const childA = useMemo(() => <ChildA a={a} />, [a])
-  const childB = useMemo(() => <ChildB b={b} />, [b])
+const Parent = ({ a, b }) => {
+  const childA = useMemo(() => <ChildA a={a} />, [a]);
+  const childB = useMemo(() => <ChildB b={b} />, [b]);
 
   return (
     <>
       {childA}
       {childB}
     </>
-  )
-}
+  );
+};
 ```
 
 ### useCallback
@@ -181,8 +195,8 @@ const Parent = ({a, b}) => {
 
 ```js
 const memoFunc = useCallback(() => {
-  doSomething()
-}, [watchVar])
+  doSomething();
+}, [watchVar]);
 ```
 
 例えば子コンポーネントに対しては  
@@ -190,15 +204,14 @@ const memoFunc = useCallback(() => {
 
 ```js
 // 通常 props が変更される度に Parent は再レンダリングされる
-const Parent = (props) => {  
-
+const Parent = props => {
   // その度に funcA は再定義される
-  const funcA = () => {}
+  const funcA = () => {};
 
   // funcB は初回レンダリング時のみ定義される
   const funcB = useCallback(() => {
-    doSomething()
-  }, [])
+    doSomething();
+  }, []);
 
   // funcA が更新 -> ChildA は不要に再レンダリングされる
   // funcB は存続 -> ChildB は再レンダリングされない
@@ -207,31 +220,31 @@ const Parent = (props) => {
       <ChildA onClick={funcA} />
       <ChildB onClick={funcB} />
     </>
-  )
-}
+  );
+};
 ```
 
-- さらにコールバックによって state を管理する場合  
+- さらにコールバックによって state を管理する場合
   - 第２引数は状況に応じて指定するか否かよく考える
   - 現状のベストプラクティスは
-    - `setState()`  の引数に関数を指定する
+    - `setState()` の引数に関数を指定する
     - 第２引数は空配列を指定する
 
 ```js
-const [count, setCount] = useState(0)
+const [count, setCount] = useState(0);
 
 // 直前の state を引数にとるという関数を
 // 初回レンダリング時のみ定義する
 const handleClick = useCallback(() => {
-  setCount(prev => prev + 1)
-}, [])
+  setCount(prev => prev + 1);
+}, []);
 
 return (
   <>
-   <p>count: {count}</p>
-   <button onClick={handleClick}>+1</button>
+    <p>count: {count}</p>
+    <button onClick={handleClick}>+1</button>
   </>
-)
+);
 ```
 
 以下はアンチパターン
@@ -239,14 +252,14 @@ return (
 ```js
 // メモ化されているが count の更新と共に再定義される
 const handleClick = useCallback(() => {
-  setCount(count + 1)
-}, [count])
+  setCount(count + 1);
+}, [count]);
 
 // ２回目以降のレンダリング時には定義されないが
 // 初期状態を参照するため count = 1 のまま
 const handleClick = useCallback(() => {
-  setCount(count + 1)
-}, [])
+  setCount(count + 1);
+}, []);
 ```
 
 <br>
@@ -263,7 +276,7 @@ const Counter = () => {
   const [count, setCount] = useState(0)
   const prevCountRef = useRef(0)
   const prevCount = prevCountRef.current
-  
+
   useEffect(() => {
     prevCountRef.current = count
   })
@@ -295,21 +308,21 @@ const InputWithFocusBtn() {
 ```js
 // ref が DOM ノードに接続されたとき，その高さを表示する
 const MeasuredTag = () => {
-  const [height, setHeight] = useState(0)
+  const [height, setHeight] = useState(0);
 
   const measuredRef = useCallback(node => {
     if (node !== null) {
       setHeight(node.getBoundingClientRect().height);
     }
-  }, [])
+  }, []);
 
   return (
     <>
       <h1 ref={measuredRef}>H1 Tag</h1>
       <h2>H1 Height : {Math.round(height)}px</h2>
     </>
-  )
-}
+  );
+};
 ```
 
 <br>
@@ -327,7 +340,7 @@ const MeasuredTag = () => {
 ## 参考文献
 
 [Hooks API Reference](https://reactjs.org/docs/hooks-reference.html)  
-[りあクト！ TypeScriptで始めるつらくないReact開発 第2版](https://github.com/oukayuka/ReactBeginnersBook-2.0)  
+[りあクト！ TypeScript で始めるつらくない React 開発 第 2 版](https://github.com/oukayuka/ReactBeginnersBook-2.0)  
 [雰囲気で使わない React hooks の useCallback/useMemo](https://qiita.com/seya/items/8291f53576097fc1c52a)  
-[React Hooks、useStateの更新関数引数には関数を](https://qiita.com/Takepepe/items/7e62cc7d7d8b81ca50db)  
+[React Hooks、useState の更新関数引数には関数を](https://qiita.com/Takepepe/items/7e62cc7d7d8b81ca50db)  
 [useCallback in mrsekut-p's Scrapbox](https://scrapbox.io/mrsekut-p/useCallback)
