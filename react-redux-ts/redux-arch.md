@@ -106,6 +106,7 @@ actions と action が本来の責務に集中できる．
   - Reducer の switch 文で比較するため
   - 新しい Action を作成したら追加していく
   - フォーマットは `APP_NAME/DOMAIN_NAME/ACTION_NAME`
+    - アプリの規模に合わせて考える
 - HogeLiteral
   - UnionType を定義したとき，同時にリテラルを変数に格納しておく
   - ActionTypes とは異なり，型の比較ではなく変数の比較に備えるため
@@ -202,4 +203,5 @@ const hogeSelector = (state: Root.State): someReturn => {}
 [React/Reduxで秩序あるコードを書く](https://speakerdeck.com/naoishii/reduxde-zhi-xu-arukodowoshu-ku)  
 [React/Redux約三年間書き続けたので知見を共有します](https://tech.enigmo.co.jp/entry/2018/12/04/140027)  
 [ReactをTypeScriptで書く4: Redux編](https://www.dkrk-blog.net/javascript/react_ts04)  
-[Reduxの非同期処理にReact Hooksを使う](https://yo7.dev/articles/redux-async-hook)
+[Reduxの非同期処理にReact Hooksを使う](https://yo7.dev/articles/redux-async-hook)  
+[非同期処理にredux-thunkやredux-sagaは必要無い](https://qiita.com/Naturalclar/items/6157d0b031bbb00b3c73)
