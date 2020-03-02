@@ -79,7 +79,7 @@ actions と action が本来の責務に集中できる．
 - AppState
   - ドメインデータとは別の Reducer として用意する
   - アプリ全体の state を管理する
-    - e.g. isLoading など
+    - e.g. errorMsg, SuccessInfo など
 - DomainState
   - ドメイン特有の state
     - e.g. Task, User など
@@ -114,6 +114,7 @@ actions と action が本来の責務に集中できる．
     - e.g. Selector, Containers 配下など
 - Action 型の集合体
   - 複数の Action の型が登録される
+    - e.g. `HogeAction["Fuga"]` と参照できるよう, 型は Lookup Type にまとめる
   - (type HogeActions) : (const HogeReducer) = 1 : 1
   - 各所から参照される
     - e.g. Action Creator, Reducer, Containers 配下など
@@ -186,12 +187,58 @@ const hogeSelector = (state: Root.State): someReturn => {}
 1. ドメイン設計
 2. Action Creator を書く
 3. Types を書く
-4. Reducers を書く
-5. Store を書く
-6. Operations を書く
-7. Selectors を書く
-8. Components を書く
+4. Components を書く
+5. Operations を途中まで書く
+6. Selectors を途中まで書く
+7. Reducers を書く
+8. Store を書く
 9. Containers を書く
+10. Operations と Selectors を仕上げる
+11. 全体を仕上げる
+
+<br>
+
+重要なのは 1 ~ 6 の作業．  
+詳しくは repository: react-redux-ts-prac を参照．  
+
+- ドメイン設計での注意
+  - app ドメインは共通の状態管理を行う
+    - エラーや通知処理を担う
+  - 疑問 `isLoading` を管理させる必要があるか?
+    - 今のところ必要性を感じない
+    - `isLoading` を用いる場面は非同期処理中
+    - 非同期処理を Custom Hooks に閉じ込めると, その中で `isLoading` も取り回せる
+      - Container において `[isLoading, asynchResult] = useCustomHook` のように結果を取得する
+    - あとは `isLoading` に応じて Component を振り分けるだけ
+
+- Types での注意
+  - Action 型の命名は比較的難しいので, 何度も見直す
+  - d.ts ファイルにすると, Reducers で便利な [`const ActionTypes` ](#types-のデザイン) による比較ができなくなる
+  
+- Component での注意
+  - 変数や型が取得できない場合, 適当に定義して後で差し替える
+  - 時間をかけるのはロジック部分が完成してから
+  
+- Operations での注意
+  - Operations 内では, 基本的に dispatch させず シンプルに Actions を返す
+    - Operations はどうしても肥大化しがち
+    - Re-ducks でもたらされた責務の分散をいかしたい
+  - ただし, 非同期処理を行う Operation は Custom Hook にする
+    - このとき, その Operation の中で dispatch する
+    - 理由: dispatch は Promise object でなく plain object を返す必要があるから
+      - Container 側で `dispatch(asyncResult)` をするとエラー
+      - 非同期処理の middleware は，dispatch を拡張するという点に置いて利用価値がある
+      - しかし Custom Hook を作れば事足りる場合が多い
+      - 依存が減るという意味でも Custom Hook を作れば当面は良さそう
+
+- Selectors での注意
+  - コードを書くのは簡単だが, 命名が下手だとここにしわ寄せが来る
+  - `(state: Root.State) => state.domainName.reducerName.dataName` を綺麗に書きたい
+    - `state.todos.todos` とかになりがち
+    - [Action 集合体 : Reducer = 1 : 1 の法則](#types-のデザイン)
+  - domainName : store.ts で Reducers をまとめるときに指定
+  - reducerName : reducers.ts で `combineReducers()` するときに指定
+  - dataName : types.ts で payload オブジェクト内に指定
 
 <br>
 
@@ -204,4 +251,5 @@ const hogeSelector = (state: Root.State): someReturn => {}
 [React/Redux約三年間書き続けたので知見を共有します](https://tech.enigmo.co.jp/entry/2018/12/04/140027)  
 [ReactをTypeScriptで書く4: Redux編](https://www.dkrk-blog.net/javascript/react_ts04)  
 [Reduxの非同期処理にReact Hooksを使う](https://yo7.dev/articles/redux-async-hook)  
-[非同期処理にredux-thunkやredux-sagaは必要無い](https://qiita.com/Naturalclar/items/6157d0b031bbb00b3c73)
+[非同期処理にredux-thunkやredux-sagaは必要無い](https://qiita.com/Naturalclar/items/6157d0b031bbb00b3c73)  
+[おすすめ自作 React hooks集2 (useRouter)](https://qiita.com/pikohideaki/items/4238dd17818e58c33799)
