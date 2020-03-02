@@ -213,7 +213,7 @@ const hogeSelector = (state: Root.State): someReturn => {}
 
 - Types での注意
   - Action 型の命名は比較的難しいので, 何度も見直す
-  - d.ts ファイルにすると, Reducers で便利な [`const ActionTypes` ](#types-のデザイン) による比較ができなくなる
+  - d.ts ファイルにすると, Reducers で便利な [`const ActionTypes`](#types-のデザイン) による比較ができなくなる
   
 - Component での注意
   - 変数や型が取得できない場合, 適当に定義して後で差し替える
