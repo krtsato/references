@@ -1,6 +1,6 @@
 # React Redux
 
-- [Redux の設計方式](#設計方式)
+- [Redux の設計方式](#redux-の設計方式)
 - [Re-ducks](#re-ducks)
   - [Index の責務](#index-の責務)
   - [Operation の責務](#operation-の責務)
@@ -10,6 +10,12 @@
   - [Types のデザイン](#types-のデザイン)
   - [Store の責務](#store-の責務)
   - [設計順序（半自己流）](#設計順序半自己流)
+    - [ドメイン設計での注意](#ドメイン設計での注意)
+    - [Actions / Reducers での注意](#actions--reducers-での注意)
+    - [Types での注意](#types-での注意)
+    - [Component での注意](#component-での注意)
+    - [Operations での注意](#operations-での注意)
+    - [Selectors での注意](#selectors-での注意)
 - [参考文献](#参考文献)
 
 ソースコード : [react-redux-ts-prac](https://github.com/krtsato/react-redux-ts-prac)
@@ -34,7 +40,7 @@ Ducks Pattern で構成してもスケールしない．
 - Pros
   - 一言で表すと Reducer ドリブンという印象
   - 責務分散により Reducer と Action が本来の責務に集中できる
-  - ディレクトリ管理がしやすい
+    - ドメインごとにディレクトリを掘る
     - ドメインごとに以下のファイル群を持つ
       - index.ts
       - types.ts
@@ -55,7 +61,7 @@ Ducks Pattern で構成してもスケールしない．
       - [Action 集合型 : Reducer = 1 : 1 の法則](#action-のデザイン)
     - 前提により，Types において Action 集合型の命名が難しくなる
     - 型や変数を適切に命名しないと [Selectors にしわ寄せが来る](#selectors-での注意)
-    - Custom Hook で非同期処理をする場合，その中で dispatch する必要がある
+    - [Custom Hook で非同期処理をする場合](#operations-での注意)，その中で dispatch する必要がある
       - Container Component に返されるのは dispatch でなく dispatch を実行する関数 `Promise<void>`
       - つまり dispatch の実行場所を完全には統一できない
 
@@ -70,7 +76,7 @@ Ducks Pattern で構成してもスケールしない．
     - Container で定義するイベントハンドラ : FugaHdl
   - Custom Hook の中で dispatch する関数を `const dipatchFugaRes` と名付ける
     - res : result あるいは response の意味
-    - Container 側では `dispatchFugaRes()`  と  `dispatch = useDispatch()` による `dispatch(fugaOpe)` が見られる
+    - Container 側では `dispatchFugaRes()`  に加えて `useDispatch()` による `dispatch(fugaOpe)` が見られる
     - 直感的に dispatch されたと分かるため悪くない
 
 Cons の数だけ見ると微妙だが，細かい話が中心の Cons に比べて Pros の効果が絶大なので，少なくとも個人開発では Re-ducks パターンを採用したい．
