@@ -22,34 +22,67 @@
 - Ducks
 - Re-ducks
 
-Redux は中規模以上のアプリを堅く作ることに長けている．
-しかし，考えなしに rails way を採用するとディレクトリ管理が大変．
-
+Redux は中規模以上のアプリを堅く作ることに長けている．  
+しかし，rails way を採用するとディレクトリ管理が大変．
 Ducks Pattern で構成してもスケールしない．  
-１ファイルの記述量が増えすぎる上，非同期処理を組み込みにくい．  
+１ファイルの記述量が増えすぎる上，非同期処理を組み込みにくい．
 
 <br>
 
 ## Re-ducks
 
-ドメインごとに以下のファイル群を持つ．
-actions と reducers が本来の責務に集中できる．
+- Pros
+  - 一言で表すと Reducer ドリブンという印象
+  - 責務分散により Reducer と Action が本来の責務に集中できる
+  - ディレクトリ管理がしやすい
+    - ドメインごとに以下のファイル群を持つ
+      - index.ts
+      - types.ts
+      - actions.ts
+      - reducers.ts
+      - operations.ts
+      - selectors.ts
+  - 非同期処理を行う Operations を Custom Hook として再利用できる
+    - middleware 不要で依存や学習コストを低減できる
 
-- index.ts
-- types.ts
-- actions.ts
-- reducers.ts
-- operations.ts
-- selectors.ts
+- Cons
+  - 設計段階からドメイン定義をある程度固める必要がある
+  - ディレクトリ管理はしやすいがファイル数が増える
+    - Re-ducks というより Redux の記述量の問題でもある
+  - Reducer を簡潔にしていくと各所の命名が難しくなる
+    - 前提
+      - 同ドメイン下でも [Reducer は分割されるべき](#reducer-のデザイン)
+      - [Action 集合型 : Reducer = 1 : 1 の法則](#action-のデザイン)
+    - 前提により，Types において Action 集合型の命名が難しくなる
+    - 型や変数を適切に命名しないと [Selectors にしわ寄せが来る](#selectors-での注意)
+    - Custom Hook で非同期処理をする場合，その中で dispatch する必要がある
+      - Container Component に返されるのは dispatch でなく dispatch を実行する関数 `Promise<void>`
+      - つまり dispatch の実行場所を完全には統一できない
+
+- 改善案
+  - まず接尾辞にルールを設けるところから始める
+  - これだけでもかなり楽になる
+    - Reducer : HogeRed
+    - Action 集合型 : HogeActions
+    - Action : FugaAct
+    - Operations : FugaOpe
+    - Selectors : FugaSel
+    - Container で定義するイベントハンドラ : FugaHdl
+  - Custom Hook の中で dispatch する関数を `const dipatchFugaRes` と名付ける
+    - res : result あるいは response の意味
+    - Container 側では `dispatchFugaRes()`  と  `dispatch = useDispatch()` による `dispatch(fugaOpe)` が見られる
+    - 直感的に dispatch されたと分かるため悪くない
+
+Cons の数だけ見ると微妙だが，細かい話が中心の Cons に比べて Pros の効果が絶大なので，少なくとも個人開発では Re-ducks パターンを採用したい．
 
 <br>
 
 ### Index の責務
 
+- Re-ducks における各ドメインに配置される
 - Containers に Operations や Selectors などを re-export する
-- re-ducks における各ドメインに配置される
 - TypeScript 3.8 で `export * as Hoge from "path/to/hoge"` がサポートされた
-  - @typescript-eslint/parser や prettier の対応を待ち
+  - @typescript-eslint/parser や prettier の対応待ち
 
 <br>
 
@@ -90,15 +123,14 @@ actions と reducers が本来の責務に集中できる．
 
 モノリシックな reducers を作らず分割する．
 
-- AppState
-  - ドメインデータとは別の Reducer として用意する
-  - アプリ全体の state を管理する
-    - e.g. errorMsg, SuccessInfo など
-- DomainState
+- Domain State
   - ドメイン特有の state
     - e.g. Task, User など
-- UIState
-  - UI特有のstate
+  - ドメイン共通の state
+    - app ドメインに切り分けて管理する
+      - e.g. errorMsg, SuccessInfo など
+- UI State
+  - UI 特有の state
   - e.g. Modal, DisplayToggler など
   - DomainState との境界が曖昧になる場合もあるので注意
 
@@ -106,7 +138,13 @@ actions と reducers が本来の責務に集中できる．
 
 ### Action のデザイン
 
-１つの Reducer に対して１つの Action 集合型を定義すると見通しが良い．
+- １つの Reducer に対して１つの Action 集合型を定義すると見通しが良い
+  - Action 集合型とは Types で定義される Action の Lookup Type
+    - e.g. AddTodo, DelTodo 型があるとき `TodoManage["AddTodo"]` を集合型と呼ぶことにする
+  - [前述](#reducer-のデザイン)したとおり，Reducer の分割に伴って命名に迷いがち
+    - 単に todoReducer としても Todo の何なのか分からない
+    - Reducer を簡潔に書くことが最優先なので多少の不便には目を瞑る
+    - DRY の観点から言えば「怪我の功名」的な良さでもある
 
 <br>
 
@@ -122,11 +160,10 @@ actions と reducers が本来の責務に集中できる．
   - フォーマットは `APP_NAME/DOMAIN_NAME/ACTION_NAME`
     - アプリの規模に合わせて考える
 - HogeLiteral
-  - UnionType を定義したとき，同時にリテラルを変数に格納しておく
-  - ActionTypes とは異なり，型の比較ではなく変数の比較に備えるため
-  - 各所から参照される
-    - e.g. Selector, Containers 配下など
-- Action 型の集合体
+  - ActionTypes とは異なり，action.type の比較ではなく State の取得に備えるため
+  - 各所で参照が必要となった際に定義していけば良い
+    - e.g. Selectors, Containers 配下など
+- Action 型の集合型
   - 複数の Action の型が登録される
     - e.g. `HogeAction["Fuga"]` と参照できるよう, 型は Lookup Type にまとめる
   - (type HogeActions) : (const HogeReducer) = 1 : 1
@@ -227,6 +264,16 @@ const hogeSelector = (state: Root.State): someReturn => {}
 
 <br>
 
+#### Actions / Reducers での注意
+
+- types.js を見ながら簡潔に書くのみ
+  - actions.ts : plain object を返すのみ
+  - reducers.ts : 更新された state object を返すのみ
+- これが Re-ducks の責務分散による偉功
+  - 複雑性は Selectors と Operations が吸収する
+
+<br>
+
 #### Types での注意
 
 - Action 型の命名は比較的難しいので, 何度も見直す
@@ -261,7 +308,7 @@ const hogeSelector = (state: Root.State): someReturn => {}
 - コードを書くのは簡単だが, 命名が下手だとここにしわ寄せが来る
 - `(state: Root.State) => state.domainName.reducerName.dataName` を綺麗に書きたい
   - `state.todos.todos` とかになりがち
-  - [Action 集合体 : Reducer = 1 : 1 の法則](#types-のデザイン)
+  - [Action 集合型 : Reducer = 1 : 1 の法則](#types-のデザイン)
     - domainName : store.ts で Reducers をまとめるときに指定
     - reducerName : reducers.ts で `combineReducers()` するときに指定
     - dataName : types.ts で payload オブジェクト内に指定
