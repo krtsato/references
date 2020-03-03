@@ -1,28 +1,39 @@
 # React Redux
 
-記述途中です．  
-repository: react-redux-saga-ts-prac で作業してます．
+- [Redux の設計方式](#設計方式)
+- [Re-ducks](#re-ducks)
+  - [Index の責務](#index-の責務)
+  - [Operation の責務](#operation-の責務)
+  - [Selector の責務](#selector-の責務)
+  - [Reducer のデザイン](#reducer-のデザイン)
+  - [Action のデザイン](#action-のデザイン)
+  - [Types のデザイン](#types-のデザイン)
+  - [Store の責務](#store-の責務)
+  - [設計順序（半自己流）](#設計順序半自己流)
+- [参考文献](#参考文献)
+
+ソースコード : [react-redux-ts-prac](https://github.com/krtsato/react-redux-ts-prac)
 
 <br>
 
-## 設計方式
+## Redux の設計方式
 
-- rails way
-- ducks
-- re-ducks
+- Rails Way
+- Ducks
+- Re-ducks
 
 Redux は中規模以上のアプリを堅く作ることに長けている．
 しかし，考えなしに rails way を採用するとディレクトリ管理が大変．
 
-ducks で構成してもスケールしない．  
+Ducks Pattern で構成してもスケールしない．  
 １ファイルの記述量が増えすぎる上，非同期処理を組み込みにくい．  
 
 <br>
 
-## re-ducks
+## Re-ducks
 
 ドメインごとに以下のファイル群を持つ．
-actions と action が本来の責務に集中できる．
+actions と reducers が本来の責務に集中できる．
 
 - index.ts
 - types.ts
@@ -51,6 +62,9 @@ actions と action が本来の責務に集中できる．
 - 別のドメインの Action は Operation を経由して取得する
 - 疑問
   - 非同期処理が Operation にまとめられるならば，わざわざ redux-thunk ではなく redux-saga を用いるメリットはあるのか？
+  - 個人的には そもそも middleware を使わない選択肢が丸い印象
+    - 非同期処理を Custom Hook に閉じ込めて取り回せば良いのでは
+  - [非同期処理の middleware を用いるメリットは一応ある](#operations-での注意)
 
 <br>
 
@@ -184,6 +198,8 @@ const hogeSelector = (state: Root.State): someReturn => {}
 
 ### 設計順序（半自己流）
 
+重要なのは 1 ~ 6 の作業．
+
 1. ドメイン設計
 2. Action Creator を書く
 3. Types を書く
@@ -198,47 +214,57 @@ const hogeSelector = (state: Root.State): someReturn => {}
 
 <br>
 
-重要なのは 1 ~ 6 の作業．  
-詳しくは repository: react-redux-ts-prac を参照．  
+#### ドメイン設計での注意
 
-- ドメイン設計での注意
-  - app ドメインは共通の状態管理を行う
-    - エラーや通知処理を担う
-  - 疑問 `isLoading` を管理させる必要があるか?
-    - 今のところ必要性を感じない
-    - `isLoading` を用いる場面は非同期処理中
-    - 非同期処理を Custom Hooks に閉じ込めると, その中で `isLoading` も取り回せる
-      - Container において `[isLoading, asynchResult] = useCustomHook` のように結果を取得する
-    - あとは `isLoading` に応じて Component を振り分けるだけ
+- app ドメインは共通の状態管理を行う
+  - エラーや通知処理を担う
+- 疑問 `isLoading` を管理させる必要があるか?
+  - 今のところ必要性を感じない
+  - `isLoading` を用いる場面は非同期処理中
+  - 非同期処理を Custom Hooks に閉じ込めると, その中で `isLoading` も取り回せる
+    - Container において `[isLoading, asynchResult] = useCustomHook` のように結果を取得する
+  - あとは `isLoading` に応じて Component を振り分けるだけ
 
-- Types での注意
-  - Action 型の命名は比較的難しいので, 何度も見直す
-  - d.ts ファイルにすると, Reducers で便利な [`const ActionTypes`](#types-のデザイン) による比較ができなくなる
-  
-- Component での注意
-  - 変数や型が取得できない場合, 適当に定義して後で差し替える
-  - 時間をかけるのはロジック部分が完成してから
-  
-- Operations での注意
-  - Operations 内では, 基本的に dispatch させず シンプルに Actions を返す
-    - Operations はどうしても肥大化しがち
-    - Re-ducks でもたらされた責務の分散をいかしたい
-  - ただし, 非同期処理を行う Operation は Custom Hook にする
-    - このとき, その Operation の中で dispatch する
-    - 理由: dispatch は Promise object でなく plain object を返す必要があるから
-      - Container 側で `dispatch(asyncResult)` をするとエラー
-      - 非同期処理の middleware は，dispatch を拡張するという点に置いて利用価値がある
-      - しかし Custom Hook を作れば事足りる場合が多い
-      - 依存が減るという意味でも Custom Hook を作れば当面は良さそう
+<br>
 
-- Selectors での注意
-  - コードを書くのは簡単だが, 命名が下手だとここにしわ寄せが来る
-  - `(state: Root.State) => state.domainName.reducerName.dataName` を綺麗に書きたい
-    - `state.todos.todos` とかになりがち
-    - [Action 集合体 : Reducer = 1 : 1 の法則](#types-のデザイン)
-  - domainName : store.ts で Reducers をまとめるときに指定
-  - reducerName : reducers.ts で `combineReducers()` するときに指定
-  - dataName : types.ts で payload オブジェクト内に指定
+#### Types での注意
+
+- Action 型の命名は比較的難しいので, 何度も見直す
+- d.ts ファイルにすると, Reducers で便利な [`const ActionTypes`](#types-のデザイン) による比較ができなくなる
+
+<br>
+
+#### Component での注意
+
+- 変数や型が取得できない場合, 適当に定義して後で差し替える
+- 時間をかけるのはロジック部分が完成してから
+
+<br>
+
+#### Operations での注意
+
+- Operations 内では, 基本的に dispatch させず シンプルに Actions を返す
+  - Operations はどうしても肥大化しがち
+  - Re-ducks でもたらされた責務の分散をいかしたい
+- ただし, 非同期処理を行う Operation は Custom Hook にする
+  - このとき, その Operation の中で dispatch する
+  - 理由: dispatch は Promise object でなく plain object を返す必要があるから
+    - Container 側で `dispatch(asyncResult)` をするとエラー
+    - 非同期処理の middleware は，dispatch を拡張するという点に置いて利用価値がある
+    - しかし Custom Hook を作れば事足りる場合が多い
+    - 依存が減るという意味でも Custom Hook を作れば当面は良さそう
+
+<br>
+
+#### Selectors での注意
+
+- コードを書くのは簡単だが, 命名が下手だとここにしわ寄せが来る
+- `(state: Root.State) => state.domainName.reducerName.dataName` を綺麗に書きたい
+  - `state.todos.todos` とかになりがち
+  - [Action 集合体 : Reducer = 1 : 1 の法則](#types-のデザイン)
+    - domainName : store.ts で Reducers をまとめるときに指定
+    - reducerName : reducers.ts で `combineReducers()` するときに指定
+    - dataName : types.ts で payload オブジェクト内に指定
 
 <br>
 
