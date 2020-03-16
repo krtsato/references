@@ -1,0 +1,251 @@
+# Golang Pointer
+
+- [値の代入と参照の代入](#値の代入と参照の代入)
+  - [Java の例](#java-の例)
+  - [Go の例](#go-の例)
+- [メモリとアドレス](#メモリとアドレス)
+  - [メモリとは](#メモリとは)
+  - [値とアドレスの違い](#値とアドレスの違い)
+- [メモリ配置とデータへのアクセス](#メモリ配置とデータへのアクセス)
+  - [型サイズ](#型サイズ)
+  - [オフセット](#オフセット)
+  - [コピー代入](#コピー代入)
+  - [直接参照と間接参照](#直接参照と間接参照)
+- [変数とアドレスの関係](#変数とアドレスの関係)
+- [バグの回避](#バグの回避)
+
+64 bit マシンを前提とする
+
+<br>
+
+## 値の代入と参照の代入
+
+### Java の例
+
+- プリミティブ型は代入元に影響を与えない
+- 参照型は代入元に影響を与える
+
+```java
+public class Main {
+  public static void main(String[] args) {
+    int a = 1;
+    int b = a;
+    b = 100; // b は プリミティブ int 型
+    System.out.printf("a: %d\n", a); // a: 1
+    System.out.printf("b: %d\n", b); // b: 100
+  }
+}
+```
+
+```java
+class A {
+  public int i;
+  public A(int i) {
+    this.i = i;
+  }
+}
+
+public class Main {
+  public static void main(String[] args) {
+    A a = new A(1);
+    A b = a;
+    b.i = 100; // b は 参照 int 型
+    System.out.printf("a.i: %d\n", a.i); // a.i: 100
+    System.out.printf("b.i: %d\n", b.i); // b.i: 100
+  }
+}
+```
+
+このように Java では
+
+- 値の代入
+  - ある値をコピーして別の値を確保し，それを代入する
+- 参照の代入
+  - インスタンスなどを通じて参照元を書き換える
+
+によって代入の型を区別している
+
+<br>
+
+### Go の例
+
+- slice / map / chan 以外の型は値の代入
+- slice / map / chan 型は参照の代入
+- ポインタ型を明示すると参照の代入
+  - e.g. int 型のポインタ型は *int 型と呼ぶ
+  - e.g. int a の 参照値は &a (アンパサンド a) と呼ぶ
+
+```go
+type A struct {
+  i int
+}
+
+func main() {
+  a := A{i: 1}
+}
+
+b := a // 通常の A 型をコピー
+b.i = 100 // Java と異なる値の代入
+fmt.Printf("a.i: %d\n", a.i) // a.i: 1
+fmt.Printf("b.i: %d\n", b.i) // b.i: 100
+```
+
+```go
+type A struct {
+  i int
+}
+
+func main() {
+  a := A{i: 1}
+  b := &a // *A 型である a の参照が &a という形で呼ばれて代入
+  b.i = 100 // 参照元を書き換える
+  fmt.Printf("a.i: %d\n", a.i) // a.i: 100
+  fmt.Printf("b.i: %d\n", b.i) // b.i: 100
+}
+```
+
+このように Go では
+
+- 基本的には値の代入
+- 参照の代入は明示する
+- slice / map / chan 型は明示せずとも参照の代入
+
+によって代入の型が区別される
+
+<br>
+
+## メモリとアドレス
+
+### メモリとは
+
+- プログラム実行時にデータが格納される場所
+- ポインタはメモリの位置を特定する
+  - point : 〜を指差す
+- メモリの位置をアドレスという
+  - アドレスは単なる正の整数
+
+<br>
+
+### 値とアドレスの違い
+
+- 通常型のメモリ配置
+  - var a int の場合 a のメモリサイズは 8 byte
+  - a が占有する領域の先頭アドレスは 0xc00009e008
+  - アドレス 0xc00009e008 から始まる 8 byte サイズの領域に 0 が格納される
+
+```go
+func main() {
+  var a int // 通常の int 型
+  fmt.Printf("value: %d\n", a) // value: 0
+  fmt.Printf("address: %p\n", &a) // address: 0xc00009e008
+}
+```
+
+- ポインタ型のメモリ配置
+  - var b *int の場合，b のメモリサイズは 8 byte
+  - b が占有する領域の先頭アドレスは 0xc00000e020
+  - アドレス 0xc00000e020 から始まる 8 byte サイズの領域に 0x0 が格納される
+    - 実はアドレスを値として格納している
+    - b には何も代入されていないため，代わりに 0 が代入される
+    - 8 byte = 64 bit つまり 0 が 64個並ぶ
+  - ポインタ型の変数の値が 0x0 のとき，nil であることと同義
+
+```go
+func main() {
+  var b *int // ポインタ int 型
+  fmt.Printf("value: %p\n", b) // value: 0x0
+  fmt.Printf("address: %p\n", &b) // address: 0xc00000e020
+}
+```
+
+<br>
+
+## メモリ配置とデータへのアクセス
+
+### 型サイズ
+
+- メモリ上に確保されるサイズは型によって決まる
+  - 値によって決まるわけではない
+- コンポジット型の比較
+  - 非参照型
+    - 要素数に応じて型サイズが増減する
+    - e.g. array
+  - 参照型
+    - 要素数に関係なく型サイズは不変
+    - e.g. slice, map, chan
+- ポインタの型サイズはすべて 8 byte
+
+```go
+type A struct {
+  i int // 型サイズ 8 byte
+  f float64 // 型サイズ 8 byte
+  s string // 型サイズ 16 byte
+}
+
+type B struct {
+  s string // 型サイズ 16 byte
+  a A // 型サイズ 8 + 8 + 16 byte
+}
+
+func main() {
+  a := A{}
+  fmt.Printf("A: %d\n", unsafe.Sizeof(a)) // A: 32
+  fmt.Printf("A pointer: %d\n", unsafe.Sizeof(&a)) // A pointer: 8
+  b := B{}
+  fmt.Printf("B: %d\n", unsafe.Sizeof(b)) // B: 48
+  fmt.Printf("B pointer: %d\n", unsafe.Sizeof(&b)) // B pointer: 8
+}
+```
+
+<br>
+
+### オフセット
+
+- 先頭アドレスからのサイズ距離
+  - e.g. 構造体の先頭アドレスから N byte 目にポインタがアクセスしてデータを取得する
+
+```go
+type A struct {
+  i int // 型サイズ 8 byte
+  f float64 // 型サイズ 8 byte
+  s string  // 型サイズ 16 byte
+}
+
+func main() {
+  a := &A{}
+  fmt.Printf("a.i starts: %d\n", unsafe.Offsetof(a.i)) // a.i starts: 0
+  fmt.Printf("a.f starts: %d\n", unsafe.Offsetof(a.f)) // a.f starts: 8
+  fmt.Printf("a.s starts: %d\n", unsafe.Offsetof(a.s)) // a.s starts: 16
+}
+```
+
+<br>
+
+### コピー代入
+
+hoge
+
+<br>
+
+### 直接参照と間接参照
+
+- ポインタ型の指定
+  - hoge
+
+- ポインタ渡し
+  - hoge
+
+- データへのアクセス
+  - hoge
+
+<br>
+
+## 変数とアドレスの関係
+
+hoge
+
+<br>
+
+## バグの回避
+
+hoge
