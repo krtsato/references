@@ -33,6 +33,18 @@ Rails のコードを書きながらこちらも編集していきます
 
 ## トップページの作成
 
+- routes to root を定義する
+  - 名前空間  `namespace` を定義する
+    - admin
+    - staff
+    - customer
+  - 作成した名前空間の controllers を作成する
+    - `bundle exec rails g controller admin/top`
+    - `class Admin::TopController < ApplicationController`
+      - ApplicationController を継承する
+      - Admin モジュールにおける
+      - Top についての controller クラス
+
 <br>
 
 ## エラーページの作成
