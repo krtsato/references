@@ -223,11 +223,33 @@ func main() {
 
 ### コピー代入
 
-hoge
+- 変数に値を代入するとき必ずコピーが作成される
+  - まず型サイズの領域を確保する
+  - その領域にコピーした値を代入する
+  - 値は同じだがアドレスが異なる
+
+![go-copy-subst1](/images/go-copy-subst1.png)
+![go-copy-subst2](/images/go-copy-subst2.png)
+
+```go
+type A struct {
+  i int
+}
+
+func main() {
+  var a1 A
+  a2 := a1
+  fmt.Printf("a1: %p\n", &a1) // a1: 0xc00001e030
+  fmt.Printf("a2: %p\n", &a2) // a2: 0xc00001e038
+}
+```
 
 <br>
 
 ### 直接参照と間接参照
+
+メモリ上のデータにアクセスする方法のこと．  
+計算機はこれらを組み合わせて処理を行なっている．
 
 - ポインタ型の指定
   - hoge
