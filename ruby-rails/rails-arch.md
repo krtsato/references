@@ -34,6 +34,7 @@ Rails のコードを書きながらこちらも編集していきます．
 - [ActiveSupport::Concern による機能共通化を目的としたリファクタ](#activesupportconcern-による機能共通化を目的としたリファクタ)
 - [Customer アカウントにおける自宅住所と勤務先の任意入力の実装](#customer-アカウントにおける自宅住所と勤務先の任意入力の実装)
 - [Customer アカウントにおける電話番号の CRUD 実装](#customer-アカウントにおける電話番号の-crud-実装)
+- [参考文献](#参考文献)
 
 ソースコード : [ruby-rails-prac](https://github.com/krtsato/ruby-rails-prac)
 
@@ -43,6 +44,8 @@ Rails のコードを書きながらこちらも編集していきます．
 
 - [ruby-rails-prac](https://github.com/krtsato/ruby-rails-prac) を要件に応じてアレンジする
 - Rails API の構築情報は今後追加
+
+<br>
 
 ## トップページの作成
 
@@ -243,3 +246,10 @@ $ bundle exec rails db:create RAILS_ENV=production
 <br>
 
 ## Customer アカウントにおける電話番号の CRUD 実装
+
+<br>
+
+## 参考文献
+
+[Ruby の Module の使い方とはいったい](https://qiita.com/shiopon01/items/fd6803f792398c5219cd)  
+[Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
