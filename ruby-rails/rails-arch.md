@@ -8,16 +8,6 @@ Rails のコードを書きながらこちらも編集していきます．
 
 - [環境構築](#環境構築)
 - [トップページの作成](#トップページの作成)
-  - [routes to root の定義](#routes-to-root-の定義)
-  - [名前空間の controllers の作成](#名前空間の-controllers-の作成)
-  - [view ファイルの分離](#view-ファイルの分離)
-  - [部分テンプレートの表示](#部分テンプレートの表示)
-  - [ヘルパーメソッドの定義](#ヘルパーメソッドの定義)
-  - [アセットパイプライン](#アセットパイプライン)
-  - [スタイルシートの分離](#スタイルシートの分離)
-  - [アセットのプリコンパイル](#アセットのプリコンパイル)
-  - [controllers のレイアウト選択](#controllers-のレイアウト選択)
-  - [production モードでの起動](#production-モードでの起動)
 - [エラーページの作成](#エラーページの作成)
 - [サーバサイドにおけるユーザ認証の実装](#サーバサイドにおけるユーザ認証の実装)
 - [フロントエンドにおけるユーザ認証の実装](#フロントエンドにおけるユーザ認証の実装)
@@ -72,7 +62,7 @@ Rails のコードを書きながらこちらも編集していきます．
 
 <br>
 
-### view ファイルの分離
+### views ファイルの分離
 
 - views も DRY にする
 - views/layouts/applications.rb を削除
@@ -131,7 +121,7 @@ Rails のコードを書きながらこちらも編集していきます．
 - config/initializers/assets.rb に追記
 
 ```ruby
-Rails.application.config.assets.precompile += %w(staff.css admin.css customer.css)
++ Rails.application.config.assets.precompile += %w(staff.css admin.css customer.css)
 ```
 
 <br>
@@ -173,19 +163,209 @@ end
 ### production モードでの起動
 
 - 早めに確認しておく
-- DB の production 設定はデプロイ先の環境に応じて今後変更する
+- database.yml の production 設定はデプロイ先の環境に応じて今後変更する
+- [ruby-rails-prac](https://github.com/krtsato/ruby-rails-prac) では Dockerfile の CMD でサーバを起動する
+  - CMD で指定した start-rails-server.sh に追記してコンテナを restart する
+  - 確認が終わったら追記箇所を元に戻す
 
 ```bash
 $ bundle exec rails db:create RAILS_ENV=production
 
-% bundle exec rails assets:precompile
+$ bundle exec rails assets:precompile
 
-% bundle exec rails s -e production -b 0.0.0.0
+$ vim init_proj/start-rails-server.sh
+# - bundle exec rails s -b "0.0.0.0" -p 3000
+# + bundle exec rails s -b "0.0.0.0" -p 3000 -e production
+
+$ docker-compose restart web
 ```
 
 <br>
 
 ## エラーページの作成
+
+### raise メソッド
+
+- 例外を発生させる
+- `raise 例外クラス名, 説明文`
+  - 引数なしの場合は StandardError を継承する RuntimeError が発生する
+
+<br>
+
+### 例外処理の書き方
+
+A ~ D は任意の Ruby コード  
+E1, E2 は Exception クラスの子孫  
+e1, e2 は 変数
+
+```ruby
+begin
+  # A
+rescue E1 => e1
+  # B
+rescue E2 => e2
+  # C
+ensure
+  # D
+end
+```
+
+- A で例外は発生した時点で A の処理は中断される
+- そこで発生した例外オブジェクトが E1 のインスタンスならば e1 に格納
+- 続けて B が実行される
+- 同様に発生した例外オブジェクトが E2 のインスタンスならば e2 に格納
+- 続けて C が実行される
+- 例外オブジェクトが E1 / E2 のインスタンスでない場合は SystemError
+- A での例外発生に関わらず最後に D が実行される
+
+<br>
+
+### クラスメソッド rescue_from
+
+- アクション内で発生した例外の処理方法を指定する
+- `rescue_from Forbidden, with: :rescue403`
+  - Forbidden / Forbidden 子孫の例外が発生したとき
+    - アクションを中止する
+    - rescue403 メソッドを実行する
+
+```ruby
+private
+
+def rescue403(e)
+  @exception = e # 渡された例外オブジェクト
+  render template: "errors/forbidden", status: 403
+end
+```
+
+<br>
+
+### 500 Internal Server Error
+
+- スタイリングの管理
+  - app/assets/stylesheets/shared/errors.scss を作成する
+  - app/assets/stylesheets/*.css でアセットパイプラインの対象ディレクトリに設定する
+    - `*=require_tree ./shared` する
+- controller への追記
+  - application_controller.rb に種々の例外処理メソッドを定義していく
+  - `rescue500(e)` は views/errors/internal_server_error.rb を表示する
+- view ファイルを作成する
+- 意図的に例外を発生させる
+  - controller の index アクションにおいて `raise` する
+
+```ruby
+class ApplicationController < ActionController::Base
++ rescue_from StandardError, with: :rescue500
+
+  private
+
++ def rescue500(e)
++   render 'errors/internal_server_error', status: 500
++ end
+end
+```
+
+<br>
+
+### 403 Forbidden
+
+- application_controller.rb に２種類の例外クラスを定義する
+  - Forbidden : 権限不足により拒否
+  - IpAddressRejected : IP アドレス制限により拒否
+- ActionController::ActionControllerError
+  - StandardError を継承する例外クラス
+  - controller で発生する様々な例外の親 / 祖先クラス
+- class 内部の class
+  - ApplicationController がモジュールとしての役割を持ち名前空間を提供する
+  - 原則的には Application::Forbidden のように呼び出す
+- `rescue_from 例外クラス` の注意事項
+  - 親子関係にある例外を指定する場合，親 / 祖先の例外を先に指定する
+- view ファイルを作成する
+  - インスタンス変数 `@exception` を view 側で使う
+- 意図的に例外を発生させる
+  - ApplicationController を継承した controller では省略形で呼び出せる
+  - e.g. `raise Forbidden`
+
+```ruby
+class ApplicationController < ActionController::Base
+
++ class Forbidden < ActionController::ActionControllerError; end
++ class IpAddressRejected < ActionController::ActionControllerError; end
+
+  rescue_from StandardError, with: :rescue500 # 先に StandardError を指定
++ rescue_from Forbidden, with: :rescue403
++ rescue_from IpAddressRejected, with: :rescue403
+
++ def rescue403(e)
++   @exception = e
++   render template: 'errors/forbidden', status: 403
++ end
+end
+```
+
+<br>
+
+### 404 Not Found
+
+- リソースが見つからない
+  - ルーティングが存在しない
+    - ActionController::RoutingError
+  - DB に指定された条件に合うレコードが存在しない
+    - ActiveRecord::RecordNotFound
+- [rescue_from](#クラスメソッド-rescue_from) はアクションにおける例外を捕捉するメソッド
+  - ルーティングの段階で発生する例外は捕捉できない
+
+<br>
+
+#### ActionController::RoutingError の処理
+
+- `config.exceptions_app = -> (env)`
+  - ミドルウェア ActionDispatch::ShowExceptions が Rails 外で発生した例外を env に投げる
+  - env ハッシュオブジェクト
+    - HTTP リクエストの情報がすべて含まれている
+      - e.g. path_info, request_method
+- `ActionDispathch::Request.new(env)`
+  - ミドルウェア ActionDispathch の Request クラスが env を元に新たなハッシュオブジェクトを作る
+  - `ErrorsController.action(action).call(env)` が例外用アクションを呼ぶ
+
+```ruby
+Rails.application.configure do
+  config.exceptions_app = -> (env) do
+    request = ActionDispatch::Request.new(env)
+
+    action =
+      case request.path_info
+      when '/404'; :not_found
+      when '/422'; :unprocessable_entity
+      else; :internal_server_error
+      end
+
+    ErrorsController.action(action).call(env)
+  end
+end
+```
+
+- `bundle exec rails g controller errors` する
+- error_controller.rb で例外処理に応じた view ファイルを指定する
+- view ファイルを作る
+- 存在しない URL を入力して意図的な例外を発生させる
+
+```ruby
+class ErrorsController < ApplicationController
+  layout "staff"
+
+  def not_found
+    render status: 404
+  end
+
+  def unprocessable_entity
+    render status: 422
+  end
+
+  def internal_server_error
+    render status: 500
+  end
+end
+```
 
 <br>
 
@@ -252,4 +432,8 @@ $ bundle exec rails db:create RAILS_ENV=production
 ## 参考文献
 
 [Ruby の Module の使い方とはいったい](https://qiita.com/shiopon01/items/fd6803f792398c5219cd)  
+[Railsアプリの例外ハンドリングとエラーページの表示についてまとめてみた](https://qiita.com/upinetree/items/273ae574f1c021d24c37)  
+[Rails の rescue_from で拾えない例外を exceptions_app で処理する](https://qiita.com/ma2ge/items/938d9f8f4839eb336318)  
+[ActionDispatch ってなんだろう？](https://blog.eiel.info/blog/2014/03/30/action-dispatch/)  
+[ほげ](https://techracho.bpsinc.jp/hachi8833/2019_10_03/77493)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
