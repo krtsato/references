@@ -1,7 +1,8 @@
 # Ruby on Rails
 
 やりたいことを列挙しただけなので  
-Rails のコードを書きながらこちらも編集していきます．
+Rails のコードを書きながらこちらも編集していきます．  
+長文のためインデックスからジャンプすることを勧めます．
 
 企業が運営する顧客管理サービスを開発する．  
 ユーザは Admin / Staff / Customer を想定する．
@@ -401,7 +402,7 @@ class ApplicationController < ActionController::Base
       - e.g. `scope ...` の定義
     - モジュールを読み込んだクラスのクラスメソッドになる
   - `class_methods ... end` 内のメソッドは，そのモジュールを読み込んだクラスのクラスメソッドになる
-  - 上記のブロックで囲まず定義したメソッドは，そのモジュールを読み込んだクラスのインスタンスメソッドになる
+  - ブロックで囲まず定義したメソッドは，そのモジュールを読み込んだクラスのインスタンスメソッドになる
   - application_controller.rb で定義した例外処理用のクラスは，名前空間付きで呼ぶ
     - e.g. `rescue_from ApplicationController::Forbidden`
 - dev 環境ではデバッグ目的でエラー表示を加工しない
@@ -448,6 +449,46 @@ end
 <br>
 
 ## サーバサイドにおけるユーザ認証の実装
+
+### 初回マイグレーション
+
+- staff の会員情報を管理する DB テーブル staff_members を作成する
+- `bundle exec rails g model StaffMember` 単数形に注意
+- マイグレーションスクリプトに追記
+  - ブロック変数 `t` には TableDefinition オブジェクトがセットされる
+  - このオブジェクトの各種メソッドがテーブルの定義を行う
+  - index の設定
+    - 検索 / ソートの高速化
+      - メールアドレス
+        - PostgreSQL の仕様でインデックスは大文字 / 小文字の区別あり
+        - SQLの関数 `LOWER(email)` で小文字にする
+        - 通常は `:email` のように指定する
+      - 苗字，名前
+        - フリガナでソートして一覧表示するとき効果的
+- `bundle exec rails db:migrate` する
+
+```ruby
+class CreateStaffMembers < ActiveRecord::Migration[6.0]
+  def change
+    create_table :staff_members do |t|
+      t.string :email, null: false                      # メールアドレス
+      t.string :family_name, null: false                # 姓
+      t.string :given_name, null: false                 # 名
+      t.string :family_name_kana, null: false           # 姓（カナ）
+      t.string :given_name_kana, null: false            # 名（カナ）
+      t.string :hashed_password                         # パスワード
+      t.date :start_date, null: false                   # 開始日
+      t.date :end_date                                  # 終了日
+      t.boolean :suspended, null: false, default: false # 無効フラグ
+
+      t.timestamps
+    end
+
+    add_index :staff_members, "LOWER(email)", unique: true
+    add_index :staff_members, [:family_name_kana, :given_name_kana]
+  end
+end
+```
 
 <br>
 
