@@ -103,7 +103,7 @@ end
 
 ```ruby
 # String クラスに関する仕様
-describe String do
+RSpec.describe String do
   # その中の << メソッド
   describe "#<<" do
     # << メソッドによるテストケース
@@ -152,7 +152,7 @@ end
   - 条件や状況に応じて結果が変化する場合など
 
 ```ruby
-describe User do
+RSpec.describe User do
   describe '#greet' do
     context '12歳以下の場合' do
       example 'ひらがなで答える' do
@@ -181,7 +181,7 @@ end
   - 親子関係に応じて before が順番に呼ばれる
 
 ```ruby
-describe User do
+RSpec.describe User do
   describe '#greet' do
     before do
       @params = {name: 'たろう'}
@@ -220,7 +220,7 @@ end
     - `expect(User.new(name: 'たろう', age: 12).greet).to` が呼ばれる
 
 ```ruby
-describe User do
+RSpec.describe User do
   describe '#greet' do
     let(:user) {User.new(name: 'たろう', age: age)}
 
@@ -265,7 +265,7 @@ end
 次に let! を使いテストが成功する例
 
 ```ruby
-describe Blog do
+RSpec.describe Blog do
   let!(:blog) {Blog.create(title: 'RSpec', content: 'やっていき')}
 
   example 'ブログの取得ができる' do
@@ -288,7 +288,7 @@ end
     - [shared_examples](#shared_examples) を使えば良さげ
 
 ```ruby
-describe User do
+RSpec.describe User do
   describe '#greet' do
     let(:user) {User.new(name: 'たろう', age: age)}
     subject {user.greet}
@@ -323,7 +323,7 @@ end
 まず shared_example を使用しない例
 
 ```ruby
-describe User do
+RSpec.describe User do
   describe '#greet' do
     let(:user) {User.new(name: 'たろう', age: age)}
     subject {user.greet}
@@ -354,7 +354,7 @@ end
 次に shared_example を使用する例
 
 ```ruby
-describe User do
+RSpec.describe User do
   describe '#greet' do
     let(:user) {User.new(name: 'たろう', age: age)}
     subject {user.greet}
@@ -404,7 +404,7 @@ end
 まず shared_context を使用しない例
 
 ```ruby
-describe User do
+RSpec.describe User do
   describe '#greet' do
     let(:user) {User.new(name: 'たろう', age: age)}
     subject {user.greet}
@@ -441,7 +441,7 @@ end
 次に shared_context を使用する例
 
 ```ruby
-describe User do
+RSpec.describe User do
   let(:user) {User.new(name: 'たろう', age: age)}
   shared_context '12歳の場合' do
     let(:age) {12}
@@ -541,7 +541,7 @@ end
 - RSpec 上で仕様を設計することで，実装前の Todo リストになる
 
 ```ruby
-describe User do
+RSpec.describe User do
   describe '#greet' do
     context '12歳以下の場合' do
       it 'ひらがなであいさつする'
