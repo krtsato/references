@@ -514,7 +514,7 @@ end
     - `%w()`  : 配列の要素をスペース区切りで指定
     - `require`  : 標準ライブラリ / 外部ファイル / 自作ファイルを読み込む
   - db/seeds/development/staff_members.rb に seed を書く
-  - `bin/rails r "puts StaffMember.count"` でシード投入を確認
+  - `bin/rails r "puts StaffMember.count"` で seed 投入を確認
 
 ```ruby
 table_names = %w(staff_members)
