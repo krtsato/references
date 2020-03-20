@@ -373,7 +373,8 @@ end
 
 #### ActiveRecord::RecordNotFound の処理
 
-DB にリクエストしたレコードがなかった場合も 404 にしてみる
+- DB にリクエストしたレコードがなかった場合も 404 にしてみる
+- application_controller.rb に追記
 
 ```ruby
 class ApplicationController < ActionController::Base
@@ -387,6 +388,61 @@ class ApplicationController < ActionController::Base
 +   @exception = e
 +   render 'errors/not_found', status: 404
 + end
+```
+
+<br>
+
+### エラー処理の切り分け
+
+- controllers/concerns/error_handlers.rb にモジュールとして切り分ける
+- ActiveSupport::Concern によるモジュール化
+  - `include do ... end` 内のメソッド
+    - モジュールが読み込まれた直後に定義される
+      - e.g. `scope ...` の定義
+    - モジュールを読み込んだクラスのクラスメソッドになる
+  - `class_methods ... end` 内のメソッドは，そのモジュールを読み込んだクラスのクラスメソッドになる
+  - 上記のブロックで囲まず定義したメソッドは，そのモジュールを読み込んだクラスのインスタンスメソッドになる
+  - application_controller.rb で定義した例外処理用のクラスは，名前空間付きで呼ぶ
+    - e.g. `rescue_from ApplicationController::Forbidden`
+- dev 環境ではデバッグ目的でエラー表示を加工しない
+  - `if Rails.env.production?`
+
+```ruby
+class ApplicationController < ActionController::Base
+  # ...
+
+  # 例外処理用のクラス
+  class Forbidden < ActionController::ActionControllerError; end
+  class IpAddressRejected < ActionController::ActionControllerError; end
+
+  # モジュールの読み込み
++ include ErrorHandlers if Rails.env.production?
+```
+
+```ruby
+module ErrorHandlers
+  extend ActiveSupport::Concern
+
+  # rescue_from は ApplicationController クラスのクラスメソッド
+  included do
+    rescue_from StandardError, with: :rescue500
+
+    # 名前空間をつける
+    rescue_from ApplicationController::Forbidden, with: :rescue403
+    rescue_from ApplicationController::IpAddressRejected, with: :rescue403
+    rescue_from ActiveRecord::RecordNotFound, with: :rescue404
+    rescue_from ActionController::ParameterMissing, with: :rescue400
+  end
+
+  private
+
+  # rescue404 は ApplicationController クラスのインスタンスメソッド
+  def rescue404(e)
+    render 'errors/not_found', status: 404
+  end
+
+  # rescue400, rescue403, rescue500 も同様
+end
 ```
 
 <br>
@@ -457,5 +513,7 @@ class ApplicationController < ActionController::Base
 [Railsアプリの例外ハンドリングとエラーページの表示についてまとめてみた](https://qiita.com/upinetree/items/273ae574f1c021d24c37)  
 [Rails の rescue_from で拾えない例外を exceptions_app で処理する](https://qiita.com/ma2ge/items/938d9f8f4839eb336318)  
 [ActionDispatch ってなんだろう？](https://blog.eiel.info/blog/2014/03/30/action-dispatch/)  
-[ほげ](https://techracho.bpsinc.jp/hachi8833/2019_10_03/77493)  
+[RailsのリクエストのライフサイクルとRackを理解する（翻訳）](https://techracho.bpsinc.jp/hachi8833/2019_10_03/77493)  
+[ActiveSupport::Concern でハッピーなモジュールライフを送る](https://www.techscore.com/blog/2013/03/22/activesupportconcern-%E3%81%A7%E3%83%8F%E3%83%83%E3%83%94%E3%83%BC%E3%81%AA%E3%83%A2%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB%E3%83%A9%E3%82%A4%E3%83%95%E3%82%92%E9%80%81%E3%82%8B/)  
+[Rails 4.2からはmodule ClassMethodsではなくConcern#class_methodsを使おう](https://blog.yujigraffiti.com/2015/01/rails-42module-classmethodsconcernclass.html)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
