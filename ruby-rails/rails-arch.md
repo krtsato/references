@@ -295,6 +295,8 @@ class ApplicationController < ActionController::Base
 + rescue_from Forbidden, with: :rescue403
 + rescue_from IpAddressRejected, with: :rescue403
 
+  private
+
 + def rescue403(e)
 +   @exception = e
 +   render template: 'errors/forbidden', status: 403
@@ -365,6 +367,26 @@ class ErrorsController < ApplicationController
     render status: 500
   end
 end
+```
+
+<br>
+
+#### ActiveRecord::RecordNotFound の処理
+
+DB にリクエストしたレコードがなかった場合も 404 にしてみる
+
+```ruby
+class ApplicationController < ActionController::Base
+
+  rescue_from StandardError, with: :rescue500 # 先に StandardError を指定
++ rescue_from ActiveRecord::RecordNotFound, with: :rescue404
+
+  private
+
++ def rescue404(e)
++   @exception = e
++   render 'errors/not_found', status: 404
++ end
 ```
 
 <br>
