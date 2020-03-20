@@ -466,6 +466,8 @@ end
       - 苗字，名前
         - フリガナでソートして一覧表示するとき効果的
 - `bundle exec rails db:migrate` する
+- `bundle exec rails r "StaffMember.columns.each {|c| p [c.name, c.type]}"` でカラム構成を確認
+  - 主キーはデフォルト設定される `["id", :integer`
 
 ```ruby
 class CreateStaffMembers < ActiveRecord::Migration[6.0]
@@ -489,6 +491,19 @@ class CreateStaffMembers < ActiveRecord::Migration[6.0]
   end
 end
 ```
+
+### パスワードのハッシュ化
+
+- application_record.rb
+  - `self.abstruct_class = true` で自身を抽象クラスにする
+    - インスタンス化されない
+  - models/staff_member.rb
+    - `def password=(raw_passeord) ... end`
+      - 要素代入関数の定義の仕方
+      - 代入演算子 `=` を用いて引数を渡せる関数
+      - `hoge = Hoge.new; hoge.raw_password = 'fuga'`
+    - `BCrypt::Password.create(raw_passward)`
+      - gem bcrypt を使ってハッシュ値を生成する
 
 <br>
 
