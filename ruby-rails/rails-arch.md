@@ -507,6 +507,39 @@ end
 
 <br>
 
+### seed データの投入
+
+- seed データも DRY にする
+  - db/seeds.rb で path を振り分ける
+    - `%w()`  : 配列の要素をスペース区切りで指定
+    - `require`  : 標準ライブラリ / 外部ファイル / 自作ファイルを読み込む
+  - db/seeds/development/staff_members.rb に seed を書く
+  - `bin/rails r "puts StaffMember.count"` でシード投入を確認
+
+```ruby
+table_names = %w(staff_members)
+
+table_names.each do |table_name|
+  path = Rails.root.join("db", "seeds", Rails.env, "#{table_name}.rb")
+  if File.exist?(path)
+    puts "Creating #{table_name}..."
+    require(path)
+  end
+end
+```
+
+```ruby
+StaffMember.create!(
+  email: "taro@example.com",
+  family_name: "山田",
+  given_name: "太郎",
+  family_name_kana: "ヤマダ",
+  given_name_kana: "タロウ",
+  password: "password",
+  start_date: Date.today
+)
+```
+
 ## フロントエンドにおけるユーザ認証の実装
 
 <br>
