@@ -17,7 +17,7 @@ Rails のコードを書きながらこちらも編集していきます．
 - [マスアサインメント脆弱性に対するセキュリティ強化](#マスアサインメント脆弱性に対するセキュリティ強化)
 - [Staff アカウントによる自身の CRUD 実装](#staff-アカウントによる自身の-crud-実装)
 - [Admin および Staff アカウントにおけるアクセス制御の実装](#admin-および-staff-アカウントにおけるアクセス制御の実装)
-- [Admin による Staff アカウントの ログイン / ログアウト記録閲覧の実装](#admin-による-staff-アカウントの-ログイン--ログアウト記録閲覧の実装)
+- [Admin による Staff アカウントのログイン / ログアウト記録閲覧の実装](#admin-による-staff-アカウントのログイン--ログアウト記録閲覧の実装)
 - [DB 格納前の正規化とバリデーションの実装](#db-格納前の正規化とバリデーションの実装)
 - [プレゼンタによるフロントエンドのリファクタ](#プレゼンタによるフロントエンドのリファクタ)
 - [Customer アカウントの CRUD 実装](#customer-アカウントの-crud-実装)
@@ -33,7 +33,7 @@ Rails のコードを書きながらこちらも編集していきます．
 
 ## 環境構築
 
-- [ruby-rails-prac](https://github.com/krtsato/ruby-rails-prac) を要件に応じてアレンジする
+- [ruby-rails-rspec-prac](https://github.com/krtsato/ruby-rails-rspec-prac) の Shell を適宜アレンジする
 - Rails API の構築情報は今後追加
 
 <br>
@@ -59,7 +59,7 @@ Rails のコードを書きながらこちらも編集していきます．
   - Top についての controller クラスは
   - ApplicationController を継承する
 - Rubocop に注意されるので `module ... end` を明記する
-- staff / customer も同様
+- staff・customer も同様
 
 <br>
 
@@ -77,17 +77,17 @@ Rails のコードを書きながらこちらも編集していきます．
 ### 部分テンプレートの表示
 
 - 各ドメインの ERB からヘッダーとフッターを呼ぶ
-- 部分テンプレートのディレクトリは views/shared/\_hoge.html.erb (.slim)
-  - 接尾辞 `_` を付ける慣習がある
+- 部分テンプレートのディレクトリは views/shared/_hoge.html.erb (.slim)
+  - 接頭辞辞 `_` を付ける慣習がある
 
 <br>
 
 ### ヘルパーメソッドの定義
 
 - ERB などのテンプレート内で使用できるメソッド
-  - views/helpers/ 配下に定義する
+  - app/helpers/ 配下に定義する
 - head タグ内の title にアプリ名を表示する
-- ブラウザのタブが表示中のページタイトルを反映する
+  - ブラウザのタブが表示中のページタイトルを反映する
 
 <br>
 
@@ -107,11 +107,11 @@ Rails のコードを書きながらこちらも編集していきます．
 - application.css を削除して app/assets/stylesheets 配下でドメインを分割
   - admin.css が `*= require_tree ./admin` する
     - admin/hoge.scss でスタイリング
-    - staff / customer も同様
+    - staff・customer も同様
 - SCSS での変数定義を別ファイルで行う
   - e.g. 色を変数で表す
-    - app/assets/stylesheets/admin/\_colors.scss
-    - 接尾辞 `_` を付ける慣習がある
+    - app/assets/stylesheets/admin/_colors.scss
+    - 接頭辞 `_` を付ける慣習がある
     - admin/hoge.scss で `@import "colors";` する
 
 <br>
@@ -122,7 +122,7 @@ Rails のコードを書きながらこちらも編集していきます．
 - config/initializers/assets.rb に追記
 
 ```ruby
-+ Rails.application.config.assets.precompile += %w(staff.css admin.css customer.css)
++ Rails.application.config.assets.precompile += %w(admin.css staff.css customer.css)
 ```
 
 <br>
@@ -165,9 +165,9 @@ end
 
 - 早めに確認しておく
 - database.yml の production 設定はデプロイ先の環境に応じて今後変更する
-- [ruby-rails-prac](https://github.com/krtsato/ruby-rails-prac) では Dockerfile の CMD でサーバを起動する
-  - CMD で指定した start-rails-server.sh に追記してコンテナを restart する
-  - 確認が終わったら追記箇所を元に戻す
+- [ruby-rails-rspec-prac](https://github.com/krtsato/ruby-rails-rspec-prac) では Dockerfile の CMD でサーバを起動する
+  - CMD で指定した start-rails-server.sh に `-e production` を追記する
+  - コンテナを restart する．確認が終わったら追記箇所を元に戻す
 
 ```bash
 $ bundle exec rails db:create RAILS_ENV=production
@@ -211,12 +211,12 @@ ensure
 end
 ```
 
-- A で例外は発生した時点で A の処理は中断される
+- A で例外が発生した時点で A の処理は中断される
 - そこで発生した例外オブジェクトが E1 のインスタンスならば e1 に格納
 - 続けて B が実行される
 - 同様に発生した例外オブジェクトが E2 のインスタンスならば e2 に格納
 - 続けて C が実行される
-- 例外オブジェクトが E1 / E2 のインスタンスでない場合は SystemError
+- 例外オブジェクトが E1・E2 のインスタンスでない場合は SystemError
 - A での例外発生に関わらず最後に D が実行される
 
 <br>
@@ -225,15 +225,15 @@ end
 
 - アクション内で発生した例外の処理方法を指定する
 - `rescue_from Forbidden, with: :rescue403`
-  - Forbidden / Forbidden 子孫の例外が発生したとき
+  - Forbidden・Forbidden の子孫が例外を例外を発生させたとき
     - アクションを中止する
     - rescue403 メソッドを実行する
 
 ```ruby
 private
 
-def rescue403(e)
-  @exception = e # 渡された例外オブジェクト
+def rescue403(exception)
+  @exception = exception # 渡された例外オブジェクト
   render template: "errors/forbidden", status: 403
 end
 ```
@@ -248,7 +248,7 @@ end
     - `*=require_tree ./shared` する
 - controller への追記
   - application_controller.rb に種々の例外処理メソッドを定義していく
-  - `rescue500(e)` は views/errors/internal_server_error.rb を表示する
+  - `rescue500` は views/errors/internal_server_error.rb を表示する
 - view ファイルを作成する
 - 意図的に例外を発生させる
   - controller の index アクションにおいて `raise` する
@@ -259,7 +259,7 @@ class ApplicationController < ActionController::Base
 
   private
 
-+ def rescue500(e)
++ def rescue500
 +   render 'errors/internal_server_error', status: 500
 + end
 end
@@ -270,21 +270,21 @@ end
 ### 403 Forbidden
 
 - application_controller.rb に２種類の例外クラスを定義する
-  - Forbidden : 権限不足により拒否
-  - IpAddressRejected : IP アドレス制限により拒否
+  - Forbidden : 権限不足によりリクエスト拒否
+  - IpAddressRejected : IP アドレス制限によりリクエスト拒否
 - ActionController::ActionControllerError
   - StandardError を継承する例外クラス
-  - controller で発生する様々な例外の親 / 祖先クラス
+  - controller で発生する様々な例外の親・祖先クラス
 - class 内部の class
-  - ApplicationController がモジュールとしての役割を持ち名前空間を提供する
+  - ApplicationController が名前空間を提供する役割を持つ
   - 原則的には Application::Forbidden のように呼び出す
 - `rescue_from 例外クラス` の注意事項
-  - 親子関係にある例外を指定する場合，親 / 祖先の例外を先に指定する
+  - 親子関係にある例外を指定する場合，親・祖先の例外を先に指定する
 - view ファイルを作成する
   - インスタンス変数 `@exception` を view 側で使う
 - 意図的に例外を発生させる
-  - ApplicationController を継承した controller では省略形で呼び出せる
-  - e.g. `raise Forbidden`
+  - ApplicationController を継承した controller では名前空間を省略して呼び出せる
+  - e.g. `raise Forbidden` は `ApplicationController::`  を省略している
 
 ```ruby
 class ApplicationController < ActionController::Base
@@ -298,8 +298,8 @@ class ApplicationController < ActionController::Base
 
   private
 
-+ def rescue403(e)
-+   @exception = e
++ def rescue403(exception)
++   @exception = exception
 +   render template: 'errors/forbidden', status: 403
 + end
 end
@@ -328,7 +328,7 @@ end
       - e.g. path_info, request_method
 - `ActionDispathch::Request.new(env)`
   - ミドルウェア ActionDispathch の Request クラスが env を元に新たなハッシュオブジェクトを作る
-  - `ErrorsController.action(action).call(env)` が例外用アクションを呼ぶ
+  - `ErrorsController.action(action).call(env)` が例外用アクションを呼び出す
 
 ```ruby
 Rails.application.configure do
@@ -348,7 +348,7 @@ end
 ```
 
 - `bundle exec rails g controller errors` する
-- error_controller.rb で例外処理に応じた view ファイルを指定する
+- errors_controller.rb で例外処理に応じた view ファイルを指定する
 - view ファイルを作る
 - 存在しない URL を入力して意図的な例外を発生させる
 
@@ -385,10 +385,10 @@ class ApplicationController < ActionController::Base
 
   private
 
-+ def rescue404(e)
-+   @exception = e
++ def rescue404
 +   render 'errors/not_found', status: 404
 + end
+end
 ```
 
 <br>
@@ -397,10 +397,10 @@ class ApplicationController < ActionController::Base
 
 - controllers/concerns/error_handlers.rb にモジュールとして切り分ける
 - ActiveSupport::Concern によるモジュール化
-  - `include do ... end` 内のメソッド
-    - モジュールが読み込まれた直後に定義される
-      - e.g. `scope ...` の定義
+  - `included do ... end` 内のメソッド
     - モジュールを読み込んだクラスのクラスメソッドになる
+    - モジュールが読み込まれた直後に定義される
+      - e.g. `scope ...`
   - `class_methods ... end` 内のメソッドは，そのモジュールを読み込んだクラスのクラスメソッドになる
   - ブロックで囲まず定義したメソッドは，そのモジュールを読み込んだクラスのインスタンスメソッドになる
   - application_controller.rb で定義した例外処理用のクラスは，名前空間付きで呼ぶ
@@ -418,6 +418,8 @@ class ApplicationController < ActionController::Base
 
   # モジュールの読み込み
 + include ErrorHandlers if Rails.env.production?
+- # エラー関係のメソッドをすべて削除
+end
 ```
 
 ```ruby
@@ -438,7 +440,7 @@ module ErrorHandlers
   private
 
   # rescue404 は ApplicationController クラスのインスタンスメソッド
-  def rescue404(e)
+  def rescue404
     render 'errors/not_found', status: 404
   end
 
@@ -453,7 +455,7 @@ end
 ### 初回マイグレーション
 
 - staff の会員情報を管理する DB テーブル staff_members を作成する
-  - Admin は同様の手順・異なる DB スキーマで実装する
+  - admin は同様の手順・異なる DB スキーマで実装する
 - `bundle exec rails g model StaffMember` 単数形に注意
 - マイグレーションスクリプトに追記
   - ブロック変数 `t` には TableDefinition オブジェクトがセットされる
@@ -464,11 +466,11 @@ end
         - PostgreSQL の仕様でインデックスは大文字 / 小文字の区別あり
         - SQLの関数 `LOWER(email)` で小文字にする
         - 通常は `:email` のように指定する
-      - 苗字，名前
+      - 苗字・名前
         - フリガナでソートして一覧表示するとき効果的
 - `bundle exec rails db:migrate` する
 - `bundle exec rails r "StaffMember.columns.each {|c| p [c.name, c.type]}"` でカラム構成を確認
-  - 主キーはデフォルト設定される `["id", :integer`
+  - 主キーはデフォルト設定される `["id", :integer]`
 
 ```ruby
 class CreateStaffMembers < ActiveRecord::Migration[6.0]
@@ -500,9 +502,9 @@ end
     - インスタンス化されない
   - models/staff_member.rb
     - `def password=(raw_passeord) ... end`
-      - 要素代入関数の定義の仕方
+      - `password` を要素代入関数として定義する
       - 代入演算子 `=` を用いて引数を渡せる関数
-      - `hoge = Hoge.new; hoge.raw_password = 'fuga'`
+      - `hoge = Hoge.new; hoge.password = 'fuga'`
     - `BCrypt::Password.create(raw_passward)`
       - gem bcrypt を使ってハッシュ値を生成する
 
@@ -513,7 +515,7 @@ end
 - seed データも DRY にする
   - db/seeds.rb で path を振り分ける
     - `%w()`  : 配列の要素をスペース区切りで指定
-    - `require`  : 標準ライブラリ / 外部ファイル / 自作ファイルを読み込む
+    - `require`  : 標準ライブラリ・外部ファイル・自作ファイルを読み込む関数
   - db/seeds/development/staff_members.rb に seed を書く
   - `bin/rails r "puts StaffMember.count"` で seed 投入を確認
 
@@ -531,13 +533,8 @@ end
 
 ```ruby
 StaffMember.create!(
-  email: "taro@example.com",
-  family_name: "山田",
-  given_name: "太郎",
-  family_name_kana: "ヤマダ",
-  given_name_kana: "タロウ",
-  password: "password",
-  start_date: Date.today
+  email: "hoge@example.com",
+  # ...
 )
 ```
 
@@ -556,7 +553,7 @@ StaffMember.create!(
 ```ruby
 module Staff
 - class TopController < ApplicationController
-+ class TopController < Staff::Base
++ class TopController < Base # 同じ名前空間内のため Staff:: を省略
     # ...
   end
 end
@@ -568,10 +565,9 @@ module Staff
     private
 
     def current_staff_member
-      if session[:staff_member_id]
-        # 遅延初期化
-        @current_staff_member ||= StaffMember.find_by(id: session[:staff_member_id])
-      end
+      return if session[:staff_member_id].blank?
+      # 遅延初期化
+      @current_staff_member ||= StaffMember.find_by(id: session[:staff_member_id])
     end
 
     helper_method :current_staff_member
@@ -593,7 +589,7 @@ end
 - `resource :session, only: [:create, :destroy]` は以下のショートハンド
   - `post 'session' => 'session#create', as: :session`
   - `delete 'session' => 'session#destroy'`
-  - resource / resources については後述
+  - resource・resources については後述
 
 | Task | HTTP method | URL path | Controller | Action |
 | --- | --- | --- | --- | --- |
@@ -613,7 +609,7 @@ end
 
 ## フロントエンドにおけるユーザ認証の実装
 
-### ログイン / ログアウトリンクの設置
+### ログイン / ログアウトのリンク
 
 - views/shared/_header.html.erb を DRY にする
   - ユーザ認証はユーザの種類によって処理が異なる
@@ -621,7 +617,7 @@ end
   - 各ドメインに shared/ を作成する
     - e.g. staff/shared/_header.html.erb
 - views/layouts/staff.html.erb を編集する
-  - `current_staff_member` は helper_method なので `@current_staff_member` を返す
+  - `current_staff_member` は登録済みの helper_method であり `@current_staff_member` を返す
 
 ```erb
 - <%= render 'shared/header' %>
@@ -663,7 +659,7 @@ end
 
 <br>
 
-## Admin による Staff アカウントの ログイン / ログアウト記録閲覧の実装
+## Admin による Staff アカウントのログイン / ログアウト記録閲覧の実装
 
 <br>
 
