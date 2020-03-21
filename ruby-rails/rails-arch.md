@@ -540,7 +540,104 @@ StaffMember.create!(
 )
 ```
 
+<br>
+
+### session によるユーザ管理
+
+- 名前空間 Staff を DRY にするため Staff::Base クラスを作る
+  - controllers/staff/base.rb に共通処理を書く
+  - controllers/staff/top_controller.rb に継承させる
+  - 遅延初期化
+    - StaffMember.find_by メソッドが多くても１回しか呼ばれない
+  - session オブジェクトはクッキーの中に保持されている
+  - `helper_method` でヘルパーメソッドとして登録する
+
+```ruby
+module Staff
+- class TopController < ApplicationController
++ class TopController < Staff::Base
+    # ...
+  end
+end
+```
+
+```ruby
+module Staff
+  class Base < ApplicationController
+    private
+
+    def current_staff_member
+      if session[:staff_member_id]
+        # 遅延初期化
+        @current_staff_member ||= StaffMember.find_by(id: session[:staff_member_id])
+      end
+    end
+
+    helper_method :current_staff_member
+  end
+end
+```
+
+<br>
+
+### ログイン用のルーティング
+
+- ログインする = session を新たに開始する
+  - session というリソースを追加する = POST
+- ログアウトする = session を終了する
+  - session というリソースを削除する = DELETE
+- `as: :login`
+  - ルーティングに名前を付ける
+  - :staff_login というシンボルを用いて URL パスを参照できる
+- `resource :session, only: [:create, :destroy]` は以下のショートハンド
+  - `post 'session' => 'session#create', as: :session`
+  - `delete 'session' => 'session#destroy'`
+
+| Task | HTTP method | URL path | Controller | Action |
+| --- | --- | --- | --- | --- |
+| ログインフォーム<br>を表示する | GET | /staff/login | staff/sessions | new |
+| ログインする | POST | /staff/session | staff/sessions | create |
+| ログアウトする | DELETE | /staff/session | staff/sessions | destroy |
+
+```ruby
+namespace :staff do
+  root 'top#index'
++ get 'login' => 'sessions#new', as: :login
++ resource :session, only: [:create, :destroy]
+end
+```
+
+<br>
+
 ## フロントエンドにおけるユーザ認証の実装
+
+### ログイン / ログアウトリンクの設置
+
+- views/shared/_header.html.erb を DRY にする
+  - ユーザ認証はユーザの種類によって処理が異なる
+  - _footer.html.erb は共通のまま
+  - 各ドメインに shared/ を作成する
+    - e.g. staff/shared/_header.html.erb
+- views/layouts/staff.html.erb を編集する
+  - `current_staff_member` は helper_method なので `@current_staff_member` を返す
+
+```erb
+- <%= render 'shared/header' %>
++ <%= render 'staff/shared/header' %>
+```
+
+```erb
+<header>
+  <span class="logo-mark">Ruby-Rails-RSpec-Prac</span>
+  <%=
+    if current_staff_member
+      link_to 'ログアウト', :staff_session, method: :delete
+    else
+      link_to 'ログイン', :staff_login # デフォルトで GET 通信
+    end
+  %>
+</header>
+```
 
 <br>
 
