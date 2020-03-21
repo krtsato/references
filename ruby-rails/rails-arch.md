@@ -453,6 +453,7 @@ end
 ### 初回マイグレーション
 
 - staff の会員情報を管理する DB テーブル staff_members を作成する
+  - Admin は同様の手順・異なる DB スキーマで実装する
 - `bundle exec rails g model StaffMember` 単数形に注意
 - マイグレーションスクリプトに追記
   - ブロック変数 `t` には TableDefinition オブジェクトがセットされる
@@ -592,6 +593,7 @@ end
 - `resource :session, only: [:create, :destroy]` は以下のショートハンド
   - `post 'session' => 'session#create', as: :session`
   - `delete 'session' => 'session#destroy'`
+  - resource / resources については後述
 
 | Task | HTTP method | URL path | Controller | Action |
 | --- | --- | --- | --- | --- |
@@ -633,7 +635,7 @@ end
     if current_staff_member
       link_to 'ログアウト', :staff_session, method: :delete
     else
-      link_to 'ログイン', :staff_login # デフォルトで GET 通信
+      link_to 'ログイン', :staff_login, method: :get
     end
   %>
 </header>
