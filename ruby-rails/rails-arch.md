@@ -5,27 +5,28 @@ Rails のコードを書きながらこちらも編集していきます．
 長文のためインデックスからジャンプすることを勧めます．
 
 企業が運営する顧客管理サービスを開発する．  
-ユーザは Admin / Staff / Customer を想定する．
+ユーザは Admin・Staff・Customer を想定する．
 
-- [環境構築](#環境構築)
-- [トップページの作成](#トップページの作成)
-- [エラーページの作成](#エラーページの作成)
-- [サーバサイドにおけるユーザ認証の実装](#サーバサイドにおけるユーザ認証の実装)
-- [フロントエンドにおけるユーザ認証の実装](#フロントエンドにおけるユーザ認証の実装)
-- [ルーティングの設定](#ルーティングの設定)
-- [Admin による Staff アカウント CRUD の実装](#admin-による-staff-アカウント-crud-の実装)
-- [マスアサインメント脆弱性に対するセキュリティ強化](#マスアサインメント脆弱性に対するセキュリティ強化)
-- [Staff アカウントによる自身の CRUD 実装](#staff-アカウントによる自身の-crud-実装)
-- [Admin および Staff アカウントにおけるアクセス制御の実装](#admin-および-staff-アカウントにおけるアクセス制御の実装)
-- [Admin による Staff アカウントのログイン / ログアウト記録閲覧の実装](#admin-による-staff-アカウントのログイン--ログアウト記録閲覧の実装)
-- [DB 格納前の正規化とバリデーションの実装](#db-格納前の正規化とバリデーションの実装)
-- [プレゼンタによるフロントエンドのリファクタ](#プレゼンタによるフロントエンドのリファクタ)
-- [Customer アカウントの CRUD 実装](#customer-アカウントの-crud-実装)
-- [Capybara およびバリデーションによる Customer アカウントの CRUD リファクタ](#capybara-およびバリデーションによる-customer-アカウントの-crud-リファクタ)
-- [ActiveSupport::Concern による機能共通化を目的としたリファクタ](#activesupportconcern-による機能共通化を目的としたリファクタ)
-- [Customer アカウントにおける自宅住所と勤務先の任意入力の実装](#customer-アカウントにおける自宅住所と勤務先の任意入力の実装)
-- [Customer アカウントにおける電話番号の CRUD 実装](#customer-アカウントにおける電話番号の-crud-実装)
-- [参考文献](#参考文献)
+- [Ruby on Rails](#ruby-on-rails)
+  - [環境構築](#環境構築)
+  - [トップページの作成](#トップページの作成)
+  - [エラーページの作成](#エラーページの作成)
+  - [サーバサイドにおけるユーザ認証の実装](#サーバサイドにおけるユーザ認証の実装)
+  - [フロントエンドにおけるユーザ認証の実装](#フロントエンドにおけるユーザ認証の実装)
+  - [ルーティングの設定](#ルーティングの設定)
+  - [Admin による Staff アカウント CRUD の実装](#admin-による-staff-アカウント-crud-の実装)
+  - [マスアサインメント脆弱性に対するセキュリティ強化](#マスアサインメント脆弱性に対するセキュリティ強化)
+  - [Staff アカウントによる自身の CRUD 実装](#staff-アカウントによる自身の-crud-実装)
+  - [Admin および Staff アカウントにおけるアクセス制御の実装](#admin-および-staff-アカウントにおけるアクセス制御の実装)
+  - [Admin による Staff アカウントのログイン / ログアウト記録閲覧の実装](#admin-による-staff-アカウントのログイン--ログアウト記録閲覧の実装)
+  - [DB 格納前の正規化とバリデーションの実装](#db-格納前の正規化とバリデーションの実装)
+  - [プレゼンタによるフロントエンドのリファクタ](#プレゼンタによるフロントエンドのリファクタ)
+  - [Customer アカウントの CRUD 実装](#customer-アカウントの-crud-実装)
+  - [Capybara およびバリデーションによる Customer アカウントの CRUD リファクタ](#capybara-およびバリデーションによる-customer-アカウントの-crud-リファクタ)
+  - [ActiveSupport::Concern による機能共通化を目的としたリファクタ](#activesupportconcern-による機能共通化を目的としたリファクタ)
+  - [Customer アカウントにおける自宅住所と勤務先の任意入力の実装](#customer-アカウントにおける自宅住所と勤務先の任意入力の実装)
+  - [Customer アカウントにおける電話番号の CRUD 実装](#customer-アカウントにおける電話番号の-crud-実装)
+  - [参考文献](#参考文献)
 
 ソースコード : [ruby-rails-prac](https://github.com/krtsato/ruby-rails-prac)
 
@@ -457,7 +458,7 @@ end
 - staff の会員情報を管理する DB テーブル staff_members を作成する
   - admin は同様の手順・異なる DB スキーマで実装する
 - `bundle exec rails g model StaffMember` 単数形に注意
-- マイグレーションスクリプトに追記
+- マイグレーションスクリプトに追記する
   - ブロック変数 `t` には TableDefinition オブジェクトがセットされる
   - このオブジェクトの各種メソッドがテーブルの定義を行う
   - index の設定
@@ -639,6 +640,102 @@ end
 
 <br>
 
+### form_with メソッド
+
+- デフォルトでリモートフォーム化される
+  - 入力内容を Ajax で送信するため, レスポンスに応じてブラウザ状態の更新が必要
+  - 要件に応じてオフにする
+    - config/initializers/action_view.rb に追記する
+    - `config.action_view.form_with_generates_remote_forms = false`
+- オプション
+  - `model:` モデルオブジェクト・フォームオブジェクトを指定する
+    - モデルオブジェクト : ActiveRecord::Base を継承したクラスのインスタンス
+    - フォームオブジェクト : フォームで指定される非 ActiveRecord モデル
+  - `url:` フォームの入力データを送信するURL・そのシンボルを指定する
+
+<br>
+
+### ログインフォームの作成
+
+- app/forms/staff/login_form.rb でフォームオブジェクトを手作りする
+  - モデルオブジェクトではないので ActiveRecord::Base を継承しない
+  - `include ActiveModel::Model` : `form_with` の `model:` に指定できる
+  - `attr_accessor` : 指定した属性はフォームのフィールド名になる
+- セッション周りのコントローラを作成 `bundle exec rails g controller staff/sessions`
+  - フォームオブジェクトを作成しインスタンス変数に格納して view へ渡す
+- view ファイルを作成する
+
+```ruby
+module Staff
+  class LoginForm
+    include ActiveModel::ActiveModel
+    attr_accessor :email, :password
+  end
+end
+```
+
+```ruby
+module Staff
+  class SessionsController < Base
+    def new
+      if current_staff_member
+        redirect_to :staff_root
+      else
+        @form = LoginForm.new
+        render action: 'new'
+      end
+    end
+  end
+end
+```
+
+<br>
+
+### ログイン時の session の追加
+
+- 本来は直接 params オブジェクトを取り回さない
+  - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
+- `find_by("LOWER(email) = ?", @form.email.downcase)` : `?` に第２引数が代入される
+
+```ruby
+module Staff
+  class SessionsController < Base
+    # ...
++   def create
++     @form = LoginForm.new(params[:staff_login_form])
++     if @form.email.present?
++       staff_member = StaffMember.find_by("LOWER(email) = ?", @form.email.downcase)
++     end
++
++     if staff_member
++       session[:staff_member_id] = staff_member.id
++       redirect_to :staff_root
++     else
++       render action: 'new'
++     end
++   end
++ end
+end
+```
+
+<br>
+
+### ログアウト時の session 削除
+
+```ruby
+module Staff
+  class SessionsController < Base
+    #...
++   def destroy
++     session.delete(:staff_member_id)
++     redirect_to :staff_root
++   end
+  end
+end
+```
+
+<br>
+
 ## ルーティングの設定
 
 <br>
@@ -700,4 +797,5 @@ end
 [RailsのリクエストのライフサイクルとRackを理解する（翻訳）](https://techracho.bpsinc.jp/hachi8833/2019_10_03/77493)  
 [ActiveSupport::Concern でハッピーなモジュールライフを送る](https://www.techscore.com/blog/2013/03/22/activesupportconcern-%E3%81%A7%E3%83%8F%E3%83%83%E3%83%94%E3%83%BC%E3%81%AA%E3%83%A2%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB%E3%83%A9%E3%82%A4%E3%83%95%E3%82%92%E9%80%81%E3%82%8B/)  
 [Rails 4.2からはmodule ClassMethodsではなくConcern#class_methodsを使おう](https://blog.yujigraffiti.com/2015/01/rails-42module-classmethodsconcernclass.html)  
+[Rails 5.1〜6: ‘form_with’ APIドキュメント完全翻訳](https://techracho.bpsinc.jp/hachi8833/2017_05_01/39502)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
