@@ -704,8 +704,17 @@ end
 - sessions_controller.rb に session 追加の機能を書く
   - 本来は直接 params オブジェクトを取り回さない
   - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
-- `find_by("LOWER(email) = ?", @form.email.downcase)` : `?` に第２引数が代入される
 - 認証の手順
+  - email から staff_member を取得する
+    - `find_by("LOWER(email) = ?", @form.email.downcase)` : `?` に第２引数が代入される
+  - `suspended` に関係なくパスワードのハッシュ値比較などを行う
+  - `suspended` かどうか確認する
+- flash・session オブジェクトに値を設定する
+  - `flash.now.alert` : alert 属性にセットされた値がアクション終了時に削除される
+    - 通常は次のアクセス時まで flash を保持している
+    - flash にセットしたメッセージを当該アクションでのみ使用する場合に有効
+- view ファイルで flash を受け取る
+  - `now` : はフロント側では指定しなくて良い
 
 ```ruby
 module Staff
@@ -750,6 +759,14 @@ module Staff
 +   end
 + end
 end
+```
+
+```erb
+<header>
+<!-- ... -->
++ `<%= content_tag(:span, flash.notice, class: 'notice') if flash.notice %>`
++ `<%= content_tag(:span, flash.alert, class: 'alert') if flash.alert %>`
+</header>
 ```
 
 <br>
