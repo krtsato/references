@@ -554,6 +554,38 @@ RSpec.describe User do
 end
 ```
 
+<br>
+
+### Factory Bot の導入
+
+- DB にテストデータを投入するための gem
+- 初期設定
+  - spec/rails_helper.rb に `config.include FactoryBot::Syntax::Methods`  を追記
+- spec/factories/ 配下でファクトリーファイルを作成する
+  - `FactoryBot.define do ... end` の中でファクトリーを定義する
+  - spec ファイルから `build` で呼び出せるようにシンボルを設定する
+
+```ruby
+FactoryBot.define do
+  factory :user do # シンボルを設定する
+    sequence(:email) {|n| "member#{n}@example.com"} # n 連番で作成される
+    password {'password'}
+    # ...
+  end
+end
+```
+
+```ruby
+RSpec.describe User::Authenticator do
+  describe '#authenticate' do
+    example '正しいパスワードならば true を返す' do
+      u = build(:user) # シンボルで呼び出す
+      expect(described_class.new(u).authenticate('password')).to be_truthy
+    end
+  end
+end
+```
+
 ## 参考文献
 
 [Relish Publisher RSpec](https://relishapp.com/rspec/)  

@@ -695,6 +695,7 @@ end
 
 - サービスオブジェクトとして app/services/staff/authenticator.rb を作成する
   - controller のインスタンスメソッドではなく，独立したクラスとして実装される
+  - 7 Patterns to Refactor Fat ActiveRecord Models の思想に基づく
   - `BCrypt::Password.new(@staff_member.hashed_password) == raw_password`
     - ハッシュパスワードのインスタンスを作成する
     - BCrypt のインスタンスメソッド `==` で平文パスワードをハッシュ化する
@@ -704,6 +705,7 @@ end
   - 本来は直接 params オブジェクトを取り回さない
   - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
 - `find_by("LOWER(email) = ?", @form.email.downcase)` : `?` に第２引数が代入される
+- 認証の手順
 
 ```ruby
 module Staff
@@ -713,9 +715,7 @@ module Staff
     end
 
     def authenticate(raw_password)
-      @staff_member &&
-        !@staff_member.suspended? &&
-        @staff_member.hashed_password &&
+      @staff_member&.hashed_password &&
         @staff_member.start_date <= Date.today &&
         (@staff_member.end_date.nil? || @staff_member.end_date > Date.today) &&
         BCrypt::Password.new(@staff_member.hashed_password) == raw_password
@@ -731,13 +731,20 @@ module Staff
 +   def create
 +     @form = LoginForm.new(params[:staff_login_form])
 +     if @form.email.present?
-+       staff_member = StaffMember.find_by("LOWER(email) = ?", @form.email.downcase)
++       staff_member = StaffMember.find_by('LOWER(email) = ?', @form.email.downcase)
 +     end
 +
 +     if Authenticator.new(staff_member).authenticate(@form.password)
-+       session[:staff_member_id] = staff_member.id
-+       redirect_to :staff_root
++       if staff_member.suspended?
++         flash.now.alert = 'アカウントが停止されています'
++         render action: 'new'
++       else
++         session[:staff_member_id] = staff_member.id
++         flash.notice = 'ログインしました'
++         redirect_to :staff_root
++       end
 +     else
++       flash.now.alert = 'メールアドレスまたはパスワードが正しくありません'
 +       render action: 'new'
 +     end
 +   end
@@ -826,4 +833,6 @@ end
 [Rails 4.2からはmodule ClassMethodsではなくConcern#class_methodsを使おう](https://blog.yujigraffiti.com/2015/01/rails-42module-classmethodsconcernclass.html)  
 [Rails 5.1〜6: ‘form_with’ APIドキュメント完全翻訳](https://techracho.bpsinc.jp/hachi8833/2017_05_01/39502)
 [Method: BCrypt::Password#==](https://www.rubydoc.info/github/codahale/bcrypt-ruby/BCrypt%2FPassword:==)  
+[7 Patterns to Refactor Fat ActiveRecord Models](https://codeclimate.com/blog/7-ways-to-decompose-fat-activerecord-models/)  
+[ubyとRailsにおけるTime, Date, DateTime, TimeWithZoneの違い](https://qiita.com/jnchito/items/cae89ee43c30f5d6fa2c#activesupporttimewithzone%E3%82%AF%E3%83%A9%E3%82%B9)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
