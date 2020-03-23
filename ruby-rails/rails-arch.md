@@ -11,8 +11,8 @@ Rails のコードを書きながらこちらも編集していきます．
   - [環境構築](#環境構築)
   - [トップページの作成](#トップページの作成)
   - [エラーページの作成](#エラーページの作成)
-  - [サーバサイドにおけるユーザ認証の実装](#サーバサイドにおけるユーザ認証の実装)
-  - [フロントエンドにおけるユーザ認証の実装](#フロントエンドにおけるユーザ認証の実装)
+  - [サーバサイドにおけるユーザ認証の前準備](#サーバサイドにおけるユーザ認証の前準備)
+  - [フロントエンドから流れに乗るユーザ認証の実装](#フロントエンドから流れに乗るユーザ認証の実装)
   - [ルーティングの設定](#ルーティングの設定)
   - [Admin による Staff アカウント CRUD の実装](#admin-による-staff-アカウント-crud-の実装)
   - [マスアサインメント脆弱性に対するセキュリティ強化](#マスアサインメント脆弱性に対するセキュリティ強化)
@@ -451,7 +451,7 @@ end
 
 <br>
 
-## サーバサイドにおけるユーザ認証の実装
+## サーバサイドにおけるユーザ認証の前準備
 
 ### 初回マイグレーション
 
@@ -501,24 +501,24 @@ end
 - application_record.rb
   - `self.abstruct_class = true` で自身を抽象クラスにする
     - インスタンス化されない
-  - models/staff_member.rb
-    - `def password=(raw_passeord) ... end`
-      - `password` を要素代入関数として定義する
-      - 代入演算子 `=` を用いて引数を渡せる関数
-      - `hoge = Hoge.new; hoge.password = 'fuga'`
-    - `BCrypt::Password.create(raw_passward)`
-      - gem bcrypt を使ってハッシュ値を生成する
+- models/staff_member.rb
+  - `def password=(raw_passeord) ... end`
+    - `password` を要素代入関数として定義する
+    - 代入演算子 `=` を用いて引数を渡せる関数
+    - `hoge = Hoge.new; hoge.password = 'fuga'`
+  - `BCrypt::Password.create(raw_passward)`
+    - gem bcrypt を使ってハッシュ値を生成する
 
 <br>
 
 ### seed データの投入
 
 - seed データも DRY にする
-  - db/seeds.rb で path を振り分ける
-    - `%w()`  : 配列の要素をスペース区切りで指定
-    - `require`  : 標準ライブラリ・外部ファイル・自作ファイルを読み込む関数
-  - db/seeds/development/staff_members.rb に seed を書く
-  - `bin/rails r "puts StaffMember.count"` で seed 投入を確認
+- db/seeds.rb で path を振り分ける
+  - `%w()`  : 配列の要素をスペース区切りで指定
+  - `require`  : 標準ライブラリ・外部ファイル・自作ファイルを読み込む関数
+- db/seeds/development/staff_members.rb に seed を書く
+- `bin/rails r "puts StaffMember.count"` で seed 投入を確認
 
 ```ruby
 table_names = %w(staff_members)
@@ -541,11 +541,11 @@ StaffMember.create!(
 
 <br>
 
-### session によるユーザ管理
+### 認証後の session によるユーザ管理
 
 - 名前空間 Staff を DRY にするため Staff::Base クラスを作る
-  - controllers/staff/base.rb に共通処理を書く
   - controllers/staff/top_controller.rb に継承させる
+- controllers/staff/base.rb に共通処理を書く
   - 遅延初期化
     - StaffMember.find_by メソッドが多くても１回しか呼ばれない
   - session オブジェクトはクッキーの中に保持されている
@@ -608,7 +608,7 @@ end
 
 <br>
 
-## フロントエンドにおけるユーザ認証の実装
+## フロントエンドから流れに乗るユーザ認証の本実装
 
 ### ログイン / ログアウトのリンク
 
@@ -657,9 +657,9 @@ end
 
 ### ログインフォームの作成
 
-- app/forms/staff/login_form.rb でフォームオブジェクトを手作りする
+- app/forms/staff/login_form.rb でフォームオブジェクトを作成する
   - モデルオブジェクトではないので ActiveRecord::Base を継承しない
-  - `include ActiveModel::Model` : `form_with` の `model:` に指定できる
+  - `include ActiveModel::Model` : `form_with` の `model:` として指定できる
   - `attr_accessor` : 指定した属性はフォームのフィールド名になる
 - セッション周りのコントローラを作成 `bundle exec rails g controller staff/sessions`
   - フォームオブジェクトを作成しインスタンス変数に格納して view へ渡す
@@ -693,9 +693,36 @@ end
 
 ### ログイン時の session の追加
 
-- 本来は直接 params オブジェクトを取り回さない
+- サービスオブジェクトとして app/services/staff/authenticator.rb を作成する
+  - controller のインスタンスメソッドではなく，独立したクラスとして実装される
+  - `BCrypt::Password.new(@staff_member.hashed_password) == raw_password`
+    - ハッシュパスワードのインスタンスを作成する
+    - BCrypt のインスタンスメソッド `==` で平文パスワードをハッシュ化する
+      - BCrypt では比較演算子がオーバーライドされている
+    - インスタンスが保持しているハッシュ値と同じならば true を返す
+- sessions_controller.rb に session 追加の機能を書く
+  - 本来は直接 params オブジェクトを取り回さない
   - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
 - `find_by("LOWER(email) = ?", @form.email.downcase)` : `?` に第２引数が代入される
+
+```ruby
+module Staff
+  class Authenticator
+    def initialize(staff_member)
+      @staff_member = staff_member
+    end
+
+    def authenticate(raw_password)
+      @staff_member
+        && !@staff_member.suspended?
+        && @staff_member.hashed_password
+        && @staff_member.start_date <= Date.today
+        && (@staff_member.end_date.nil? || @staff_member.end_date > Date.today)
+        && BCrypt::Password.new(@staff_member.hashed_password) == raw_password
+    end
+  end
+end
+```
 
 ```ruby
 module Staff
@@ -707,7 +734,7 @@ module Staff
 +       staff_member = StaffMember.find_by("LOWER(email) = ?", @form.email.downcase)
 +     end
 +
-+     if staff_member
++     if Authenticator.new(staff_member).authenticate(@form.password)
 +       session[:staff_member_id] = staff_member.id
 +       redirect_to :staff_root
 +     else
@@ -797,5 +824,6 @@ end
 [RailsのリクエストのライフサイクルとRackを理解する（翻訳）](https://techracho.bpsinc.jp/hachi8833/2019_10_03/77493)  
 [ActiveSupport::Concern でハッピーなモジュールライフを送る](https://www.techscore.com/blog/2013/03/22/activesupportconcern-%E3%81%A7%E3%83%8F%E3%83%83%E3%83%94%E3%83%BC%E3%81%AA%E3%83%A2%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB%E3%83%A9%E3%82%A4%E3%83%95%E3%82%92%E9%80%81%E3%82%8B/)  
 [Rails 4.2からはmodule ClassMethodsではなくConcern#class_methodsを使おう](https://blog.yujigraffiti.com/2015/01/rails-42module-classmethodsconcernclass.html)  
-[Rails 5.1〜6: ‘form_with’ APIドキュメント完全翻訳](https://techracho.bpsinc.jp/hachi8833/2017_05_01/39502)  
+[Rails 5.1〜6: ‘form_with’ APIドキュメント完全翻訳](https://techracho.bpsinc.jp/hachi8833/2017_05_01/39502)
+[Method: BCrypt::Password#==](https://www.rubydoc.info/github/codahale/bcrypt-ruby/BCrypt%2FPassword:==)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
