@@ -1,6 +1,6 @@
 # references
 
-![books](https://user-images.githubusercontent.com/32429977/77129809-b0159880-6a98-11ea-91f7-7ab6955be522.png)
+![reference-book](/images/reference-book.png)
 
 学習した内容や作業ログを記録しています
 
@@ -13,6 +13,5 @@
   - React の言語仕様
   - Redux の設計
 - [ruby-rails](https://github.com/krtsato/references/tree/master/ruby-rails)
-  - Rails の設計 / 作業ログ
+  - Rails の作業ログ / 設計
   - RSpec のメソッド
-  

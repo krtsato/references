@@ -228,8 +228,8 @@ func main() {
   - その領域にコピーした値を代入する
   - 値は同じだがアドレスが異なる
 
-![go-copy-subst1](/images/go-copy-subst1.png)
-![go-copy-subst2](/images/go-copy-subst2.png)
+![go-copy-subst1](/images/golang/go-copy-subst1.png)
+![go-copy-subst2](/images/golang/go-copy-subst2.png)
 
 ```go
 type A struct {

@@ -48,14 +48,14 @@ export PATH=$GOPATH/bin:$PATH
 
 IDE から拡張機能 [vscode-go](https://github.com/microsoft/vscode-go) をインストールする．
 
-![vcode-go](/images/vscode-go.png)
+![vcode-go](/images/golang/vscode-go.png)
 
 <br>
 
 IDE から [golangci-lint](https://github.com/golangci/golangci) をインストールする．  
 デフォルトの Lint ツールを厳格化するために，golangci-lint を採用した．
 
-![golangci-lint](/images/golangci-lint.png)
+![golangci-lint](/images/golang/golangci-lint.png)
 
 <br>
 

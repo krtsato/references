@@ -36,7 +36,7 @@
 - Error Handling
   - そのコンポーネント自身および子孫コンポーネントのエラーを補足する
 
-![react-process](/images/react-process.png)
+![react-process](/images/react-redux-ts/react-process.png)
 
 詳細追加予定
 
@@ -64,7 +64,7 @@ Class Component / Function Component とは別の切り口で
 - Presentational Component : 見た目を担うコンポーネント
 - Container Component : 処理を担うコンポーネント
 
-![two-kinds-of-comp](/images/pc-comp.png)
+![two-kinds-of-comp](/images/react-redux-ts/pc-comp.png)
 
 闇雲に作らないための１つの指標
 
