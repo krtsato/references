@@ -229,8 +229,8 @@ func main() {
   - 値は同じだがアドレスが異なる
   - ポインタ型の変数であってもコピー代入は発生する
 
-![go-copy-subst1](/images/golang/go-copy-subst1.png)
-![go-copy-subst2](/images/golang/go-copy-subst2.png)
+![copy-subst-01](/images/golang/copy-subst-01.png)
+![copy-subst-02](/images/golang/copy-subst-02.png)
 
 ```go
 type A struct {
@@ -283,7 +283,7 @@ func main() {
 - ポインタ型の変数をある関数に渡すこと
 - アドレスを値として格納する
 
-![go-pointer-pass](/images/golang/go-pointer-pass.png)
+![pointer-pass](/images/golang/pointer-pass.png)
 
 ```go
 type A struct {
@@ -311,7 +311,7 @@ func main() {
   - `a1` のメモリ領域 16 byte を確保する
   - `f` の 8 byte を書き換える
 
-![go-direct-ref](/images/golang/go-direct-ref.png)
+![direct-ref](/images/golang/direct-ref.png)
 
 ```go
 type A struct {
@@ -328,7 +328,7 @@ func main() {
 }
 ```
 
-![go-direct-ref](/images/golang/go-indirect-ref.png)
+![indirect-ref](/images/golang/indirect-ref.png)
 
 - 関節参照
   - `a2` のメモリ領域 8 byte を確保する
@@ -356,7 +356,61 @@ func main() {
 
 ## 変数とアドレスの関係
 
-hoge
+- ポインタ型の変数代入時に，その変数アドレスと代入元の先頭アドレスは一致しない
+- どの領域の先頭アドレスを見ているか明確に把握することが大切
+
+アンチパターン
+
+![var-add-rel-01](/images/golang/var-add-rel-01.png)
+![var-add-rel-02](/images/golang/var-add-rel-02.png)
+![var-add-rel-03](/images/golang/var-add-rel-03.png)
+![var-add-rel-04](/images/golang/var-add-rel-04.png)
+
+```go
+type A struct {
+  i int
+}
+
+func main() {
+  list := []A{{i: 1}, {i: 2}, {i: 3}}
+  pList := make([]*A, 0, len(list))
+  
+  for _, v := range list {
+    // ポインタ型のアドレスを Slice に格納する
+    pList = append(pList, &v)
+  }
+
+  for _, v := range pList {
+    // 格納値ではなく最後に経由した v の値を出力する
+    fmt.Println(v.i) // 3 3 3
+  }
+}
+```
+
+上記は `1 2 3`  という出力にならない  
+正しい実装
+
+![var-add-rel-05](/images/golang/var-add-rel-05.png)
+
+```go
+type A struct {
+  i int
+}
+
+func main() {
+  list := []A{{i: 1}, {i: 2}, {i: 3}}
+  pList := make([]*A, 0, len(list))
+
+  for i := range list {
+    // インデックスで要素を指定して Slice に格納する
+    pList = append(pList, &list[i])
+  }
+
+  for _, v := range pList {
+    fmt.Println(v.i) // 1 2 3
+  }
+}
+```
 
 <br>
 
