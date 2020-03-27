@@ -252,8 +252,12 @@ func main() {
 メモリ上のデータにアクセスする方法のこと．  
 計算機はこれらを組み合わせて処理を行なっている．  
 
-- 通常型 : 直接参照を使う
-- ポインタ型 : 間接参照を使う
+- 直接参照
+  - 通常型を指定すると使われる
+  - 直接データへアクセスして読み書きする
+- 間接参照
+  - ポインタ型を指定すると使われる
+  - アドレス値を経由して間接的にデータへアクセスし，読み書きする
 
 ```go
 type A struct  {
@@ -265,12 +269,14 @@ func main() {
   a2 := new(A)
   var a3 A
   var a4 *A
-  fmt.Printf("a1: %T\n", a1) // a1: main.A
-  fmt.Printf("a2: %T\n", a2) // a2: *main.A
-  fmt.Printf("a3: %T\n", a3) // a3: main.A
-  fmt.Printf("a4: %T\n", a4) // a4: *main.A
+  fmt.Printf("a1: %T\n", a1) // a1: main.A 通常型
+  fmt.Printf("a2: %T\n", a2) // a2: *main.A ポインタ型
+  fmt.Printf("a3: %T\n", a3) // a3: main.A 通常型
+  fmt.Printf("a4: %T\n", a4) // a4: *main.A ポインタ型
 }
 ```
+
+<br>
 
 #### ポインタ渡し
 
@@ -297,10 +303,15 @@ func main() {
 }
 ```
 
+<br>
+
 #### データへのアクセス
 
 - 直接参照
-  - hoge
+  - `a1` のメモリ領域 16 byte を確保する
+  - `f` の 8 byte を書き換える
+
+![go-direct-ref](/images/golang/go-direct-ref.png)
 
 ```go
 type A struct {
@@ -317,8 +328,13 @@ func main() {
 }
 ```
 
+![go-direct-ref](/images/golang/go-indirect-ref.png)
+
 - 関節参照
-  - hoge
+  - `a2` のメモリ領域 8 byte を確保する
+  - 構造体 `A` のメモリ領域 16 byte を確保する
+  - `A` の先頭アドレスの値を `a2` の領域に格納する
+  - `a2` の値から `A` の先頭アドレスを特定して `f` の 8 byte を書き換える
 
 ```go
 type A struct {
