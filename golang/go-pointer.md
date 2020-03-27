@@ -227,6 +227,7 @@ func main() {
   - まず型サイズの領域を確保する
   - その領域にコピーした値を代入する
   - 値は同じだがアドレスが異なる
+  - ポインタ型の変数であってもコピー代入は発生する
 
 ![go-copy-subst1](/images/golang/go-copy-subst1.png)
 ![go-copy-subst2](/images/golang/go-copy-subst2.png)
@@ -249,16 +250,91 @@ func main() {
 ### 直接参照と間接参照
 
 メモリ上のデータにアクセスする方法のこと．  
-計算機はこれらを組み合わせて処理を行なっている．
+計算機はこれらを組み合わせて処理を行なっている．  
 
-- ポインタ型の指定
+- 通常型 : 直接参照を使う
+- ポインタ型 : 間接参照を使う
+
+```go
+type A struct  {
+  i int
+}
+
+func main() {
+  a1 := A{}
+  a2 := new(A)
+  var a3 A
+  var a4 *A
+  fmt.Printf("a1: %T\n", a1) // a1: main.A
+  fmt.Printf("a2: %T\n", a2) // a2: *main.A
+  fmt.Printf("a3: %T\n", a3) // a3: main.A
+  fmt.Printf("a4: %T\n", a4) // a4: *main.A
+}
+```
+
+#### ポインタ渡し
+
+- ポインタ型の変数をある関数に渡すこと
+- アドレスを値として格納する
+
+![go-pointer-pass](/images/golang/go-pointer-pass.png)
+
+```go
+type A struct {
+  i int
+}
+
+func test(a2 *A) {
+  fmt.Printf("a2 value: %p\n", a2) // a2 value: 0xc00008e000
+  fmt.Printf("a2 address: %p\n", &a2) // a2 address: 0xc000096000
+}
+
+func main() {
+  a1 := new(A)
+  fmt.Printf("a1 value: %p\n", a1) // a1 value: 0xc00008e000
+  fmt.Printf("a1 address: %p\n", &a1) // a1 address: 0xc000088010
+  test(a1)
+}
+```
+
+#### データへのアクセス
+
+- 直接参照
   - hoge
 
-- ポインタ渡し
+```go
+type A struct {
+  i int
+  f float64
+}
+
+func main() {
+  a1 := A{}
+  a1.f = 2.4
+  fmt.Printf("a1.f: %f\n", a1.f) // a1.f: 2.400000
+  fmt.Printf("a1 address: %p\n", &a1) // a1 address: 0xc00001e030
+  fmt.Printf("a1 size: %d\n", unsafe.Sizeof(a1)) // a1 size: 16
+}
+```
+
+- 関節参照
   - hoge
 
-- データへのアクセス
-  - hoge
+```go
+type A struct {
+  i int
+  f float64
+}
+
+func main() {
+  a2 := new(A)
+  a2.f = 2.4
+  fmt.Printf("a2.f: %f\n", a2.f) // a2.f: 2.400000
+  fmt.Printf("a2 address: %p\n", &a2) // a2 address: 0xc000088018
+  fmt.Printf("a2 value: %p\n", a2) // a2 value: 0xc000092020
+  fmt.Printf("a2 size: %d\n", unsafe.Sizeof(*a2)) // a2 size: 16
+}
+```
 
 <br>
 
