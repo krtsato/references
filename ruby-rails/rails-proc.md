@@ -1,32 +1,32 @@
 # Ruby on Rails
 
-やりたいことを列挙しただけなので  
+Rails アプリケーションを構築する記録．  
+
 Rails のコードを書きながらこちらも編集していきます．  
 長文のためインデックスからジャンプすることを勧めます．
 
 企業が運営する顧客管理サービスを開発する．  
 ユーザは Admin・Staff・Customer を想定する．
 
-- [Ruby on Rails](#ruby-on-rails)
-  - [環境構築](#環境構築)
-  - [トップページの作成](#トップページの作成)
-  - [エラーページの作成](#エラーページの作成)
-  - [サーバサイドにおけるユーザ認証の前準備](#サーバサイドにおけるユーザ認証の前準備)
-  - [フロントエンドから流れに乗るユーザ認証の本実装](#フロントエンドから流れに乗るユーザ認証の本実装)
-  - [ルーティングの設定](#ルーティングの設定)
-  - [Admin による Staff アカウント CRUD の実装](#admin-による-staff-アカウント-crud-の実装)
-  - [マスアサインメント脆弱性に対するセキュリティ強化](#マスアサインメント脆弱性に対するセキュリティ強化)
-  - [Staff アカウントによる自身の CRUD 実装](#staff-アカウントによる自身の-crud-実装)
-  - [Admin および Staff アカウントにおけるアクセス制御の実装](#admin-および-staff-アカウントにおけるアクセス制御の実装)
-  - [Admin による Staff アカウントのログイン / ログアウト記録閲覧の実装](#admin-による-staff-アカウントのログイン--ログアウト記録閲覧の実装)
-  - [DB 格納前の正規化とバリデーションの実装](#db-格納前の正規化とバリデーションの実装)
-  - [プレゼンタによるフロントエンドのリファクタ](#プレゼンタによるフロントエンドのリファクタ)
-  - [Customer アカウントの CRUD 実装](#customer-アカウントの-crud-実装)
-  - [Capybara およびバリデーションによる Customer アカウントの CRUD リファクタ](#capybara-およびバリデーションによる-customer-アカウントの-crud-リファクタ)
-  - [ActiveSupport::Concern による機能共通化を目的としたリファクタ](#activesupportconcern-による機能共通化を目的としたリファクタ)
-  - [Customer アカウントにおける自宅住所と勤務先の任意入力の実装](#customer-アカウントにおける自宅住所と勤務先の任意入力の実装)
-  - [Customer アカウントにおける電話番号の CRUD 実装](#customer-アカウントにおける電話番号の-crud-実装)
-  - [参考文献](#参考文献)
+- [環境構築](#環境構築)
+- [トップページの作成](#トップページの作成)
+- [エラーページの作成](#エラーページの作成)
+- [サーバサイドにおけるユーザ認証の前準備](#サーバサイドにおけるユーザ認証の前準備)
+- [フロントエンドから流れに乗るユーザ認証の本実装](#フロントエンドから流れに乗るユーザ認証の本実装)
+- [ルーティングの設定](#ルーティングの設定)
+- [Admin による Staff アカウント CRUD の実装](#admin-による-staff-アカウント-crud-の実装)
+- [マスアサインメント脆弱性に対するセキュリティ強化](#マスアサインメント脆弱性に対するセキュリティ強化)
+- [Staff アカウントによる自身の CRUD 実装](#staff-アカウントによる自身の-crud-実装)
+- [Admin および Staff アカウントにおけるアクセス制御の実装](#admin-および-staff-アカウントにおけるアクセス制御の実装)
+- [Admin による Staff アカウントのログイン / ログアウト記録閲覧の実装](#admin-による-staff-アカウントのログイン--ログアウト記録閲覧の実装)
+- [DB 格納前の正規化とバリデーションの実装](#db-格納前の正規化とバリデーションの実装)
+- [プレゼンタによるフロントエンドのリファクタ](#プレゼンタによるフロントエンドのリファクタ)
+- [Customer アカウントの CRUD 実装](#customer-アカウントの-crud-実装)
+- [Capybara およびバリデーションによる Customer アカウントの CRUD リファクタ](#capybara-およびバリデーションによる-customer-アカウントの-crud-リファクタ)
+- [ActiveSupport::Concern による機能共通化を目的としたリファクタ](#activesupportconcern-による機能共通化を目的としたリファクタ)
+- [Customer アカウントにおける自宅住所と勤務先の任意入力の実装](#customer-アカウントにおける自宅住所と勤務先の任意入力の実装)
+- [Customer アカウントにおける電話番号の CRUD 実装](#customer-アカウントにおける電話番号の-crud-実装)
+- [参考文献](#参考文献)
 
 ソースコード : [ruby-rails-prac](https://github.com/krtsato/ruby-rails-prac)
 
@@ -78,7 +78,7 @@ Rails のコードを書きながらこちらも編集していきます．
 ### 部分テンプレートの表示
 
 - 各ドメインの ERB からヘッダーとフッターを呼ぶ
-- 部分テンプレートのディレクトリは views/shared/_hoge.html.erb (.slim)
+- 部分テンプレートのディレクトリは views/shared/\_hoge.html.erb (.slim)
   - 接頭辞辞 `_` を付ける慣習がある
 
 <br>
@@ -111,7 +111,7 @@ Rails のコードを書きながらこちらも編集していきます．
     - staff・customer も同様
 - SCSS での変数定義を別ファイルで行う
   - e.g. 色を変数で表す
-    - app/assets/stylesheets/admin/_colors.scss
+    - app/assets/stylesheets/admin/\_colors.scss
     - 接頭辞 `_` を付ける慣習がある
     - admin/hoge.scss で `@import "colors";` する
 
@@ -245,7 +245,7 @@ end
 
 - スタイリングの管理
   - app/assets/stylesheets/shared/errors.scss を作成する
-  - app/assets/stylesheets/*.css でアセットパイプラインの対象ディレクトリに設定する
+  - app/assets/stylesheets/\*.css でアセットパイプラインの対象ディレクトリに設定する
     - `*=require_tree ./shared` する
 - controller への追記
   - application_controller.rb に種々の例外処理メソッドを定義していく
@@ -285,7 +285,7 @@ end
   - インスタンス変数 `@exception` を view 側で使う
 - 意図的に例外を発生させる
   - ApplicationController を継承した controller では名前空間を省略して呼び出せる
-  - e.g. `raise Forbidden` は `ApplicationController::`  を省略している
+  - e.g. `raise Forbidden` は `ApplicationController::` を省略している
 
 ```ruby
 class ApplicationController < ActionController::Base
@@ -465,7 +465,7 @@ end
     - 検索 / ソートの高速化
       - メールアドレス
         - PostgreSQL の仕様でインデックスは大文字 / 小文字の区別あり
-        - SQLの関数 `LOWER(email)` で小文字にする
+        - SQL の関数 `LOWER(email)` で小文字にする
         - 通常は `:email` のように指定する
       - 苗字・名前
         - フリガナでソートして一覧表示するとき効果的
@@ -515,8 +515,8 @@ end
 
 - seed データも DRY にする
 - db/seeds.rb で path を振り分ける
-  - `%w()`  : 配列の要素をスペース区切りで指定
-  - `require`  : 標準ライブラリ・外部ファイル・自作ファイルを読み込む関数
+  - `%w()` : 配列の要素をスペース区切りで指定
+  - `require` : 標準ライブラリ・外部ファイル・自作ファイルを読み込む関数
 - db/seeds/development/staff_members.rb に seed を書く
 - `bin/rails r "puts StaffMember.count"` で seed 投入を確認
 
@@ -592,11 +592,11 @@ end
   - `delete 'session' => 'session#destroy'`
   - resource・resources については後述
 
-| Task | HTTP method | URL path | Controller | Action |
-| --- | --- | --- | --- | --- |
-| ログインフォーム<br>を表示する | GET | /staff/login | staff/sessions | new |
-| ログインする | POST | /staff/session | staff/sessions | create |
-| ログアウトする | DELETE | /staff/session | staff/sessions | destroy |
+| Task                           | HTTP method | URL path       | Controller     | Action  |
+| ------------------------------ | ----------- | -------------- | -------------- | ------- |
+| ログインフォーム<br>を表示する | GET         | /staff/login   | staff/sessions | new     |
+| ログインする                   | POST        | /staff/session | staff/sessions | create  |
+| ログアウトする                 | DELETE      | /staff/session | staff/sessions | destroy |
 
 ```ruby
 namespace :staff do
@@ -612,11 +612,11 @@ end
 
 ### ログイン / ログアウトのリンク
 
-- views/shared/_header.html.erb を DRY にする
+- views/shared/\_header.html.erb を DRY にする
   - ユーザ認証はユーザの種類によって処理が異なる
-  - _footer.html.erb は共通のまま
+  - \_footer.html.erb は共通のまま
   - 各ドメインに shared/ を作成する
-    - e.g. staff/shared/_header.html.erb
+    - e.g. staff/shared/\_header.html.erb
 - views/layouts/staff.html.erb を編集する
   - `current_staff_member` は登録済みの helper_method であり `@current_staff_member` を返す
 
@@ -651,7 +651,7 @@ end
   - `model:` モデルオブジェクト・フォームオブジェクトを指定する
     - モデルオブジェクト : ActiveRecord::Base を継承したクラスのインスタンス
     - フォームオブジェクト : フォームで指定される非 ActiveRecord モデル
-  - `url:` フォームの入力データを送信するURL・そのシンボルを指定する
+  - `url:` フォームの入力データを送信する URL・そのシンボルを指定する
 
 <br>
 
@@ -842,14 +842,14 @@ end
 ## 参考文献
 
 [Ruby の Module の使い方とはいったい](https://qiita.com/shiopon01/items/fd6803f792398c5219cd)  
-[Railsアプリの例外ハンドリングとエラーページの表示についてまとめてみた](https://qiita.com/upinetree/items/273ae574f1c021d24c37)  
+[Rails アプリの例外ハンドリングとエラーページの表示についてまとめてみた](https://qiita.com/upinetree/items/273ae574f1c021d24c37)  
 [Rails の rescue_from で拾えない例外を exceptions_app で処理する](https://qiita.com/ma2ge/items/938d9f8f4839eb336318)  
 [ActionDispatch ってなんだろう？](https://blog.eiel.info/blog/2014/03/30/action-dispatch/)  
-[RailsのリクエストのライフサイクルとRackを理解する（翻訳）](https://techracho.bpsinc.jp/hachi8833/2019_10_03/77493)  
+[Rails のリクエストのライフサイクルと Rack を理解する（翻訳）](https://techracho.bpsinc.jp/hachi8833/2019_10_03/77493)  
 [ActiveSupport::Concern でハッピーなモジュールライフを送る](https://www.techscore.com/blog/2013/03/22/activesupportconcern-%E3%81%A7%E3%83%8F%E3%83%83%E3%83%94%E3%83%BC%E3%81%AA%E3%83%A2%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB%E3%83%A9%E3%82%A4%E3%83%95%E3%82%92%E9%80%81%E3%82%8B/)  
-[Rails 4.2からはmodule ClassMethodsではなくConcern#class_methodsを使おう](https://blog.yujigraffiti.com/2015/01/rails-42module-classmethodsconcernclass.html)  
-[Rails 5.1〜6: ‘form_with’ APIドキュメント完全翻訳](https://techracho.bpsinc.jp/hachi8833/2017_05_01/39502)
+[Rails 4.2 からは module ClassMethods ではなく Concern#class_methods を使おう](https://blog.yujigraffiti.com/2015/01/rails-42module-classmethodsconcernclass.html)  
+[Rails 5.1〜6: ‘form_with’ API ドキュメント完全翻訳](https://techracho.bpsinc.jp/hachi8833/2017_05_01/39502)
 [Method: BCrypt::Password#==](https://www.rubydoc.info/github/codahale/bcrypt-ruby/BCrypt%2FPassword:==)  
 [7 Patterns to Refactor Fat ActiveRecord Models](https://codeclimate.com/blog/7-ways-to-decompose-fat-activerecord-models/)  
-[ubyとRailsにおけるTime, Date, DateTime, TimeWithZoneの違い](https://qiita.com/jnchito/items/cae89ee43c30f5d6fa2c#activesupporttimewithzone%E3%82%AF%E3%83%A9%E3%82%B9)  
+[uby と Rails における Time, Date, DateTime, TimeWithZone の違い](https://qiita.com/jnchito/items/cae89ee43c30f5d6fa2c#activesupporttimewithzone%E3%82%AF%E3%83%A9%E3%82%B9)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
