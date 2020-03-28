@@ -368,8 +368,11 @@ func main() {
 アンチパターン
 
 ![var-add-rel-01](/images/golang/var-add-rel-01.png)  
+
 ![var-add-rel-02](/images/golang/var-add-rel-02.png)  
+
 ![var-add-rel-03](/images/golang/var-add-rel-03.png)  
+
 ![var-add-rel-04](/images/golang/var-add-rel-04.png)
 
 ```go
