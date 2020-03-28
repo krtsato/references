@@ -11,8 +11,14 @@
   - [オフセット](#オフセット)
   - [コピー代入](#コピー代入)
   - [直接参照と間接参照](#直接参照と間接参照)
+    - [ポインタ渡し](#ポインタ渡し)
+    - [データへのアクセス](#データへのアクセス)
 - [変数とアドレスの関係](#変数とアドレスの関係)
 - [バグの回避](#バグの回避)
+  - [グローバル変数の書き換え](#グローバル変数の書き換え)
+  - [null の実現](#null-の実現)
+  - [null 構造体を定義する](#null-構造体を定義する)
+- [参考文献](#参考文献)
 
 64 bit マシンを前提とする
 
@@ -72,7 +78,7 @@ public class Main {
 - slice / map / chan 以外の型は値の代入
 - slice / map / chan 型は参照の代入
 - ポインタ型を明示すると参照の代入
-  - e.g. int 型のポインタ型は *int 型と呼ぶ
+  - e.g. int 型のポインタ型は \*int 型と呼ぶ
   - e.g. int a の 参照値は &a (アンパサンド a) と呼ぶ
 
 ```go
@@ -142,12 +148,12 @@ func main() {
 ```
 
 - ポインタ型のメモリ配置
-  - var b *int の場合，b のメモリサイズは 8 byte
+  - var b \*int の場合，b のメモリサイズは 8 byte
   - b が占有する領域の先頭アドレスは 0xc00000e020
   - アドレス 0xc00000e020 から始まる 8 byte サイズの領域に 0x0 が格納される
     - 実はアドレスを値として格納している
     - b には何も代入されていないため，代わりに 0 が代入される
-    - 8 byte = 64 bit つまり 0 が 64個並ぶ
+    - 8 byte = 64 bit つまり 0 が 64 個並ぶ
   - ポインタ型の変数の値が 0x0 のとき，nil であることと同義
 
 ```go
@@ -250,7 +256,7 @@ func main() {
 ### 直接参照と間接参照
 
 メモリ上のデータにアクセスする方法のこと．  
-計算機はこれらを組み合わせて処理を行なっている．  
+計算機はこれらを組み合わせて処理を行なっている．
 
 - 直接参照
   - 通常型を指定すると使われる
@@ -374,20 +380,20 @@ type A struct {
 func main() {
   list := []A{{i: 1}, {i: 2}, {i: 3}}
   pList := make([]*A, 0, len(list))
-  
+
   for _, v := range list {
     // ポインタ型のアドレスを Slice に格納する
     pList = append(pList, &v)
   }
 
+  // 1 2 3 という出力にならない
+  // 格納値ではなく最後に経由した v の値を出力している
   for _, v := range pList {
-    // 格納値ではなく最後に経由した v の値を出力する
     fmt.Println(v.i) // 3 3 3
   }
 }
 ```
 
-上記は `1 2 3`  という出力にならない  
 正しい実装
 
 ![var-add-rel-05](/images/golang/var-add-rel-05.png)
@@ -416,4 +422,217 @@ func main() {
 
 ## バグの回避
 
-hoge
+### グローバル変数の書き換え
+
+- ある goroutine でデータを書き換えると，その後にアクセスする goroutine は書き換えられたデータを参照してしまう
+- e.g. Go で net/http パッケージを利用する場合
+  - リクエスト ごとに goroutine が作成される
+    - goroutine はスレッド型の並行処理機構
+    - メモリ空間が共有される
+  - グローバル変数は複数の goroutine からアクセスされる
+  - 意図しないデータの書き換えが発生し得る
+
+```go
+type Data struct {
+  number int
+}
+
+var onMemoryData *Data
+
+func initData() {
+  onMemoryData = &Data {
+    number: 100,
+  }
+}
+
+func getData() Data {
+  return *onMemoryData
+}
+
+func main() {
+  initData()
+
+  list := make([]Data, 5)
+  for i := range list {
+    data := getData()
+    data.number += i // 間接参照でデータ領域を書き換えてしまう
+    list[i] = *data
+  }
+
+  fmt.Printf("%v", list) // [{100} {101} {102} {103} {104}]
+
+}
+```
+
+正しい実装
+
+```go
+type Data struct {
+  number int
+}
+
+var onMemoryData *Data
+
+func initData() {
+  onMemoryData = &Data {
+    number: 100,
+  }
+}
+
+func getData() *Data {
+  return onMemoryData
+}
+
+func main() {
+  initData()
+
+  list := make([]Data, 5)
+  for i := range list {
+    data := getData()
+    data.number += i // 間接参照でデータ領域を書き換えてしまう
+    list[i] = *data
+  }
+
+  // [{100} {101} {102} {103} {104}] という出力にならない
+  fmt.Printf("%v", list) // [{100} {101} {103} {106} {110}]
+}
+```
+
+アドレスを返却するとき，データが書き換えられる可能性があることを意識する
+
+<br>
+
+### null の実現
+
+- 通常型では null を表現できない
+  - 通常型の値はゼロ値がセットされる
+  - ゼロ値であるか null であるか区別できない
+    - e.g. ゼロ値は int 型で 0，string 型で空文字になる
+- ポインタ型では表現できる
+  - `<nil>` と表示される
+
+下記では JSON データをパースするときに null を表現する
+
+```go
+import (
+  "encoding/json"
+  "fmt"
+)
+
+type Data struct {
+  Number1 int  ‘json:"number1"‘ // 通常型
+  Number2 *int ‘json:"number2"‘ // ポインタ型
+}
+
+func main() {
+  b1 := []byte(‘{"number1":100, "number2":200}‘) // JSON データを仮作成する
+  data1 := Data{}
+  json.Unmarshal(b1, &data1) // JSON データを構造体にパースする
+  fmt.Printf("data1.Number1: %d\n", data1.Number1) // data1.Number1: 100
+  fmt.Printf("data1.Number2: %d\n", *data1.Number2) // data1.Number2: 200
+
+  b2 := []byte("{}") // null の JSON をを仮作成する
+  data2 := Data{}
+  json.Unmarshal(b2, &data2) // JSON データを構造体にパースする
+  fmt.Printf("data2.Number1: %d\n", data2.Number1) // data2.Number1: 0
+  fmt.Printf("data2.Number2: %v\n", data2.Number2) // data2.Number2: <nil>
+}
+```
+
+<br>
+
+### null 構造体を定義する
+
+- しかし本当は通常型で null を表現したい
+  - ポインタ型は意図せずデータの書き換えが発生し得るから
+- `database/sql` パッケージに `NullString` という構造体が定義されている
+  - `bool` フィールドが false : null
+  - `bool` フィールドが true : null でない
+    - `string` フィールドを読み込んでデータを取得する
+
+```go
+package sql
+
+type NullString struct {
+  String string
+  Valid  bool
+}
+```
+
+- この構造体を参考にして int 通常型で null を表現する NullInt を独自定義できる
+- `UnmarshalJSON` で独自定義の型に対応させる
+  - json パッケージの `json.Unmarshaler` インターフェースを満たすようにする
+  - 関数 `json.Unmarshal` 内部で `UnmarshalJSON` が呼ばれるようになる
+
+```go
+package json
+
+type Unmarshaler interface {
+  UnmarshalJSON([]byte) error // これを満たす独自定義の型を作成する
+}
+```
+
+```go
+import (
+  "encoding/json"
+  "fmt"
+)
+
+type NullInt struct {
+  Int int
+  Valid bool
+}
+
+// 独自定義の型に対応させる
+func (n *NullInt) UnmarshalJSON(b []byte) error {
+  i, err := strconv.ParseInt(string(b), 10, 64)
+  if err != nil {
+    return err
+  }
+  n.Int = int(i)
+  n.Valid = true
+  return nil
+}
+
+type Data struct {
+  Number1 int ‘json:"number1"‘
+  Number2 NullInt ‘json:"number2"‘
+}
+
+func main() {
+  b1 := []byte(‘{"number1":100, "number2":200}‘)
+  data1 := Data{}
+  json.Unmarshal(b1, &data1)
+  fmt.Printf("data1.Number1: %d\n", data1.Number1) // data1.Number1: 100
+  fmt.Printf("data1.Number2: %v\n", data1.Number2) // data1.Number2: {200 true}
+
+  b2 := []byte("{}")
+  data2 := Data{}
+  json.Unmarshal(b2, &data2)
+  fmt.Printf("data2.Number1: %d\n", data2.Number1) // data2.Number1: 0
+  fmt.Printf("data2.Number2: %v\n", data2.Number2) // data2.Number2: {0 false}
+
+  if data1.Number2.Valid {
+    fmt.Printf("data1.Number2 value: %d\n", data1.Number2.Int) // data1.Number2 value: 200
+  } else {
+    fmt.Println("data1.Number2 is null")
+  }
+
+  if data2.Number2.Valid {
+    fmt.Printf("data2.Number2 value: %d\n", data2.Number2.Int)
+  } else {
+    fmt.Println("data2.Number2 is null") // data2.Number2 is null
+  }
+}
+```
+
+- この手法は手間がかかる
+- ゼロ値を null と見なした方が安全な場合もある
+  - e.g. int 型の値が 0 を取らないの場合 0 を null と見なせる
+
+<br>
+
+## 参考文献
+
+[JSON and Go](https://blog.golang.org/json)  
+[GO のポインタを完全に理解する本](https://techbookfest.org/product/5039923363053568)
