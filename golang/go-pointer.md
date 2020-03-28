@@ -135,8 +135,8 @@ func main() {
 ### 値とアドレスの違い
 
 - 通常型のメモリ配置
-  - var a int の場合 a のメモリサイズは 8 byte
-  - a が占有する領域の先頭アドレスは 0xc00009e008
+  - `var a int` の場合 `a` のメモリサイズは 8 byte
+  - `a` が占有する領域の先頭アドレスは 0xc00009e008
   - アドレス 0xc00009e008 から始まる 8 byte サイズの領域に 0 が格納される
 
 ```go
@@ -148,11 +148,11 @@ func main() {
 ```
 
 - ポインタ型のメモリ配置
-  - var b \*int の場合，b のメモリサイズは 8 byte
-  - b が占有する領域の先頭アドレスは 0xc00000e020
+  - `var b *int` の場合，`b` のメモリサイズは 8 byte
+  - `b` が占有する領域の先頭アドレスは 0xc00000e020
   - アドレス 0xc00000e020 から始まる 8 byte サイズの領域に 0x0 が格納される
     - 実はアドレスを値として格納している
-    - b には何も代入されていないため，代わりに 0 が代入される
+    - `b` には何も代入されていないため，代わりに 0 が代入される
     - 8 byte = 64 bit つまり 0 が 64 個並ぶ
   - ポインタ型の変数の値が 0x0 のとき，nil であることと同義
 
@@ -235,7 +235,7 @@ func main() {
   - 値は同じだがアドレスが異なる
   - ポインタ型の変数であってもコピー代入は発生する
 
-![copy-subst-01](/images/golang/copy-subst-01.png)
+![copy-subst-01](/images/golang/copy-subst-01.png)  
 ![copy-subst-02](/images/golang/copy-subst-02.png)
 
 ```go
@@ -367,9 +367,9 @@ func main() {
 
 アンチパターン
 
-![var-add-rel-01](/images/golang/var-add-rel-01.png)
-![var-add-rel-02](/images/golang/var-add-rel-02.png)
-![var-add-rel-03](/images/golang/var-add-rel-03.png)
+![var-add-rel-01](/images/golang/var-add-rel-01.png)  
+![var-add-rel-02](/images/golang/var-add-rel-02.png)  
+![var-add-rel-03](/images/golang/var-add-rel-03.png)  
 ![var-add-rel-04](/images/golang/var-add-rel-04.png)
 
 ```go
