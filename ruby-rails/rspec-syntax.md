@@ -134,8 +134,10 @@ end
       - change + from / to / by
       - 配列 + include
       - raise_error
+      - route_to
+      - be_routable
       - be_within + of
-      - など 詳細は随時追加
+      - など
     - T と M を比較するメソッド
       - to
       - not_to (= to_not)

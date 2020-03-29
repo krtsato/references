@@ -1,6 +1,6 @@
 # Ruby on Rails
 
-Rails アプリケーションを構築する記録．  
+Rails アプリケーションを構築する記録．
 
 Rails のコードを書きながらこちらも編集していきます．  
 長文のためインデックスからジャンプすることを勧めます．
@@ -10,10 +10,43 @@ Rails のコードを書きながらこちらも編集していきます．
 
 - [環境構築](#環境構築)
 - [トップページの作成](#トップページの作成)
+  - [routes to root の定義](#routes-to-root-の定義)
+  - [名前空間の controllers の作成](#名前空間の-controllers-の作成)
+  - [views ファイルの分離](#views-ファイルの分離)
+  - [部分テンプレートの表示](#部分テンプレートの表示)
+  - [ヘルパーメソッドの定義](#ヘルパーメソッドの定義)
+  - [アセットパイプライン](#アセットパイプライン)
+  - [スタイルシートの分離](#スタイルシートの分離)
+  - [アセットのプリコンパイル](#アセットのプリコンパイル)
+  - [controllers のレイアウト選択](#controllers-のレイアウト選択)
+  - [production モードでの起動](#production-モードでの起動)
 - [エラーページの作成](#エラーページの作成)
+  - [raise メソッド](#raise-メソッド)
+  - [例外処理の書き方](#例外処理の書き方)
+  - [クラスメソッド rescue_from](#クラスメソッド-rescue_from)
+  - [500 Internal Server Error](#500-internal-server-error)
+  - [403 Forbidden](#403-forbidden)
+  - [404 Not Found](#404-not-found)
+    - [ActionController::RoutingError の処理](#actioncontrollerroutingerror-の処理)
+    - [ActiveRecord::RecordNotFound の処理](#activerecordrecordnotfound-の処理)
+  - [エラー処理の切り分け](#エラー処理の切り分け)
 - [サーバサイドにおけるユーザ認証の前準備](#サーバサイドにおけるユーザ認証の前準備)
+  - [初回マイグレーション](#初回マイグレーション)
+  - [パスワードのハッシュ化](#パスワードのハッシュ化)
+  - [seed データの投入](#seed-データの投入)
+  - [認証後の session によるユーザ管理](#認証後の-session-によるユーザ管理)
+  - [ログイン用のルーティング](#ログイン用のルーティング)
 - [フロントエンドから流れに乗るユーザ認証の本実装](#フロントエンドから流れに乗るユーザ認証の本実装)
+  - [ログイン / ログアウトのリンク](#ログイン--ログアウトのリンク)
+  - [form_with メソッド](#form_with-メソッド)
+  - [ログインフォームの作成](#ログインフォームの作成)
+  - [ログイン時の session の追加](#ログイン時の-session-の追加)
+  - [ログアウト時の session 削除](#ログアウト時の-session-削除)
 - [ルーティングの設定](#ルーティングの設定)
+  - [アクション単位のルーティング](#アクション単位のルーティング)
+  - [resources によるルーティング](#resources-によるルーティング)
+  - [resource によるルーティング](#resource-によるルーティング)
+  - [ルーティングにおける制約](#ルーティングにおける制約)
 - [Admin による Staff アカウント CRUD の実装](#admin-による-staff-アカウント-crud-の実装)
 - [マスアサインメント脆弱性に対するセキュリティ強化](#マスアサインメント脆弱性に対するセキュリティ強化)
 - [Staff アカウントによる自身の CRUD 実装](#staff-アカウントによる自身の-crud-実装)
@@ -28,7 +61,7 @@ Rails のコードを書きながらこちらも編集していきます．
 - [Customer アカウントにおける電話番号の CRUD 実装](#customer-アカウントにおける電話番号の-crud-実装)
 - [参考文献](#参考文献)
 
-ソースコード : [ruby-rails-prac](https://github.com/krtsato/ruby-rails-prac)
+ソースコード : [ruby-rails-rspec-prac](https://github.com/krtsato/ruby-rails-rspec-prac)
 
 <br>
 
@@ -47,6 +80,11 @@ Rails のコードを書きながらこちらも編集していきます．
   - admin
   - staff
   - customer
+- ルーティングにおける名前空間の影響
+  - URL パスの先頭に `/admin` を付加する
+  - controller 名の先頭に `/admin` を付加する
+  - ルーティング名の先頭に `admin_` を付加する
+- ルーティングの詳細は[後述](#ルーティングの設定)
 - この定義に基づいて controllers や views のドメイン分割をしていく
 
 <br>
@@ -590,7 +628,7 @@ end
 - `resource :session, only: [:create, :destroy]` は以下のショートハンド
   - `post 'session' => 'session#create', as: :session`
   - `delete 'session' => 'session#destroy'`
-  - resource・resources については後述
+- ルーティングの詳細は[後述](#ルーティングの設定)
 
 | Task                           | HTTP method | URL path       | Controller     | Action  |
 | ------------------------------ | ----------- | -------------- | -------------- | ------- |
@@ -788,6 +826,131 @@ end
 <br>
 
 ## ルーティングの設定
+
+### アクション単位のルーティング
+
+- ルーティングに名前を与える
+  - `as: hoge`
+  - URL パスを誤指定すると 404 表示前にエラーが発生する
+  - URL パスの変更に強くなる
+- ヘルパーメソッド
+  - `hoge_path` : URL のパス部分を返す
+    - クエリパラメタを付加できる `hoge_path(k1: v1, k2: v2, ...)`
+  - `hoge_url` : URL 全体を返す
+- パラメタに制約を設ける
+  - `get "hoge/:year" => "hoge#show", constraints: {year: /20\d\d}`
+- `namespace` のオプション
+  - path : URL パスの先頭文字列を変更する
+    - e.g. `namespace :fuga, path: 'piyo' do ... end`
+  - module : controller 名の先頭文字列を変更する
+    - e.g. `namespace :fuga, module: 'piyo' do ... end`
+  - as : ルーティング名の先頭文字列を変更する
+    - e.g. `namespace :fuga, as: 'piyo' do ... end`
+
+<br>
+
+### resources によるルーティング
+
+- 複数リソースを CRUD する場合に用いる
+  - e.g. 管理者 Admin が 職員 Staff を一覧表示がする
+- `resources :controller_names`
+  - 複数形で指名する 
+  - 複数形の controller 名に繋げる
+- 7 つの基本アクションに対するルーティングを一括指定する
+  - index, show, new, edit, create, update, destroy
+- オプション
+  - only : 基本アクションの一部にルーティングを設定
+    - e.g. `resources :staff_members, only: [:index, :new, :create]`
+  - except : 基本アクションの一部をルーティングから除外
+    - e.g. `resources :staff_members, except: [:show, :destroy]`
+  - controller : controller を変更する
+    - e.g. `resources :staff_members, controller: 'employees'`
+  - path : URL のパスを変更する
+    - e.g. `resources :staff_members, path: 'staff'`
+
+```ruby
+namespace :admin do
++ resources :staff_members
+end
+```
+
+| アクション内容         | HTTP メソッド | アクション名 | URL パス                      | ルーティング名           |
+| ---------------------- | ------------- | ------------ | ----------------------------- | ------------------------ |
+| 職員のリスト表示       | GET           | index        | /admin/staff_members          | :admin_staff_members     |
+| 職員の詳細表示         | GET           | show         | /admin/staff_members/:id      | :admin_staff_member      |
+| 職員の登録フォーム表示 | GET           | new          | /admin/staff_members/:id/new  | :new_admin_staff_member  |
+| 職員の編集フォーム表示 | GET           | edit         | /admin/staff_members/:id/edit | :edit_admin_staff_member |
+| 職員の追加             | POST          | create       | /admin/staff_members          | :admin_staff_members     |
+| 職員の更新             | PATCH         | update       | /admin/staff_members/:id      | :admin_staff_member      |
+| 職員の削除             | DELETE        | destroy      | /admin/staff_members/:id      | :admin_staff_member      |
+
+<br>
+
+### resource によるルーティング
+
+- 単数リソースを CRUD する場合に用いる
+  - e.g. 職員 Staff がアカウントページを確認する
+- `resource :controller_name`
+  - 単数形で指名する
+  - 複数形の controller 名に繋げる
+- URL パスに id パラメタを埋め込む必要はない
+  - 職員が自身のアカウントを管理できる = ログインしている
+  - id は session オブジェクトから取得できる
+
+```ruby
+namespace :staff do
+  # controllers/staff/accounts_controller.rb における
+  # Staff::AccountsController に繋げる
++ resource :account, except: [:new, :create, :destroy]
+end
+```
+
+| アクション内容               | HTTP メソッド | アクション名 | URL パス            | ルーティング名      |
+| ---------------------------- | ------------- | ------------ | ------------------- | ------------------- |
+| アカウントの詳細表示         | GET           | show         | /staff/account      | :staff_account      |
+| アカウントの編集フォーム表示 | GET           | edit         | /staff/account/edit | :edit_staff_account |
+| アカウントの更新             | PATCH         | update       | /staff/account      | :staff_account      |
+
+<br>
+
+### ルーティングにおける制約
+
+- トップページのホスト名と URL パスを変更する
+- config/initializers/rrrp.rb に設定を書く
+  - `config` は `Rails::Application::Configuration` のインスタンスを返すメソッド
+  - Rails 本体または Gem パッケージの各種設定を編集・追加できる
+- `Rails.application.config.hoge` で設定した `config` の中身にアクセスする
+
+```ruby
+Rails.application.configure do
+  config.rrrp = {
+    admin: {host: ENV['ADMIN_STAFF_HOST_NAME'], path: 'admin'},
+    staff: {host: ENV['ADMIN_STAFF_HOST_NAME'], path: ''},
+    customer: {host: ENV['CUSTOMER_HOST_NAME'], path: 'mypage'}
+  }
+end
+```
+
+```ruby
+Rails.application.routes.draw do
++ config = Rails.application.config.rrrp
+
++ constraints host: config[:admin][:host] do
+-   namespace :admin
++   namespace :admin, path: config[:admin][:path] do
+      # ...
+    end
+  end
+
++ constraints host: config[:staff][:host] do
+-   namespace :staff
++   namespace :staff, path: config[:staff][:path] do
+      # ...
+    end
+  end
+  # ...
+end
+```
 
 <br>
 
