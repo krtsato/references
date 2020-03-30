@@ -956,6 +956,64 @@ end
 
 ## Admin による Staff アカウント CRUD の実装
 
+### index アクション
+
+- 一覧表示する seed データを db/seeds/development/staff_members.rb に用意する
+  - `bundle exec rails db:reset` することで seed の重複エラーを回避
+- Admin が StaffMember を扱う admin/staff_members controller を作成する
+  - `bundle exec rails g controller admin/staff_members`
+- view ファイルを作成する
+
+```ruby
++ family_names = %w(佐藤:サトウ:sato ...)
++ given_names = %w(二郎:ジロウ:jiro ...)
+
++ fn_size = family_names.size
++ gn_size = given_names.size
++ all_combinations = fn_size * gn_size
+
++ all_combinations.times do |n|
++   fn = family_names[n % fn_size].split(":")
++   gn = given_names[n % gn_size].split(":")
+
++   StaffMember.create!(
++     email: "#{fn[2]}.#{gn[2]}@example.com",
++     family_name: fn[0],
++     given_name: gn[0],
++     family_name_kana: fn[1],
++     given_name_kana: gn[1],
++     password: "password",
++     start_date: (100 - n).days.ago.to_date,
++     end_date: n == 0 ? Time.zone.today : nil,
++     suspended: n == 1
++   )
++ end
+```
+
+<br>
+
+### show アクション
+
+<br>
+
+### new アクション
+
+<br>
+
+### edit アクション
+
+<br>
+
+### create アクション
+
+<br>
+
+### update アクション
+
+<br>
+
+### destroy アクション
+
 <br>
 
 ## マスアサインメント脆弱性に対するセキュリティ強化
