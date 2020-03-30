@@ -959,10 +959,7 @@ end
 ### index アクション
 
 - 一覧表示する seed データを db/seeds/development/staff_members.rb に用意する
-  - `bundle exec rails db:reset` することで seed の重複エラーを回避
-- Admin が StaffMember を扱う admin/staff_members controller を作成する
-  - `bundle exec rails g controller admin/staff_members`
-- view ファイルを作成する
+- `bundle exec rails db:migrate:reset` の後に `db:seed` することで seed の重複エラーを回避
 
 ```ruby
 + family_names = %w(佐藤:サトウ:sato ...)
@@ -990,13 +987,61 @@ end
 + end
 ```
 
+- Admin が StaffMember を扱う admin/staff_members_controller.rb を作成する
+  - `bundle exec rails g controller admin/staff_members`
+  - フリガナを姓・名の順にソートしつつ，staff_members テーブルの全レコードを取得
+
+```ruby
+module Admin
+  class StaffMembersController < Base
+    def index
+      @staff_members = StaffMember.order(:family_name_kana, :given_name_kana)
+    end
+  end
+end
+```
+
+- view ファイル admin/staff_members/index.html.erb を作成する
+  - `end_date.try(:strftime, %Y/%m/%d)`
+    - Date クラスのインスタンスメソッド `strftime` で日付をフォーマットする
+    - `end_date` が nil の場合 `try` メソッドが nil を返す
+      - 第１引数 : レシーバが nil でないとき実行するメソッド
+      - 第２引数 : メソッドに渡す引数
+  - エスケープ処理を抑制する場合は `raw` メソッドを使う
+
 <br>
 
 ### show アクション
 
+- データを閲覧する場合に限らず，edit アクションにリダイレクトするだけの場合もある
+  - e.g. update に失敗して編集フォームが再表示される場合
+  - `http://rrrp.example.com/admin/staff_members/123` のような URL が提供される
+  - このページはお気に入り登録・リンクのコピペによって再表示され得る
+  - show アクションにアクセスさせて，即座に edit の view へリダイレクトする
+- `redirect_to [:edit, :admin, staff_member]`
+  - 引数が配列の場合 Redirect は，配列要素からルーティング名を推定する
+  - ルーティング名 : edit_admin_staff_memnber
+  - URL パス : `/admin/staff_members/123/edit`
+- 本来は直接 params オブジェクトを取り回さない
+  - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
+
+```ruby
+module Admin
+  class StaffMembersController < Base
+    # ...
+    def show
+      staff_member = StaffMember.find(params[:id])
+      redirect_to[:edit, :admin, staff_member]
+    end
+    # ...
+  end
+end
+```
+
 <br>
 
 ### new アクション
+
 
 <br>
 
