@@ -1132,6 +1132,28 @@ end
 
 ### update アクション
 
+- `assign_attributes`
+  - モデルオブジェクトの属性を一括設定する
+  - オブジェクトの変更をするだけで DB には保存しない  
+
+```ruby
+module Admin
+  class StaffMembersController < Base
+    # ...
++   def update
++     @staff_member = StaffMember.find(params[:id])
++     @staff_member.assgin_attributes(params[:staff_member])
++     if @staff_member.save
++       flash.notice = '職員アカウントを更新しました'
++       redirect_to :admin_staff_members
++     else
++       render action: 'edit'
++     end
++   end
+  end
+end
+```
+
 <br>
 
 ### destroy アクション
