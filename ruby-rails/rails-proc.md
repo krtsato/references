@@ -1107,6 +1107,27 @@ end
 
 ### create アクション
 
+- バリデーションの実装は[後述](#db-格納前の正規化とバリデーションの実装)
+- 本来は直接 params オブジェクトを取り回さない
+  - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
+
+```ruby
+module Admin
+  class StaffMembersController < Base
+    # ...
++   def create
++     @staff_member = StaffMember.new(params[:staff_member])
++     if @staff_member.save
++       flash.notice = '職員アカウントを新規登録しました'
++       redirect_to :admin_staff_members
++     else
++       render action: 'new'
++     end
++   end
+  end
+end
+```
+
 <br>
 
 ### update アクション
