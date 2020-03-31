@@ -3,7 +3,7 @@
 - [RSpec の思想](#rspec-の思想)
 - [初期設定](#初期設定)
 - [実行](#実行)
-- [メソッド](#メソッド)
+- [RSpec のメソッド](#rspec-のメソッド)
   - [example](#example)
   - [describe](#describe)
   - [expect](#expect)
@@ -17,8 +17,13 @@
   - [pending](#pending)
   - [xexample](#xexample)
   - [skip](#skip)
+  - [post](#post)
 - [計画的テストコード](#計画的テストコード)
-- [Factory Bot の導入](#factory-bot-の導入)
+- [Factory Bot](#factory-bot)
+  - [導入](#導入)
+  - [Factory Bot のメソッド](#factory-bot-のメソッド)
+    - [attributes_for](#attributes_for)
+    - [create](#create)
 - [参考文献](#参考文献)
 
 <br>
@@ -545,7 +550,7 @@ end
 
 ### post
 
-- 第１引数の URL のフルパスに対して，第２引数のパラメータを送信する
+- 第１引数  の URL のフルパスに対して，第２引数のパラメータを送信する
 - `response`
   - `ActionController::TestResponse` オブジェクトを返すメソッド
   - アクションの実行結果に対する情報を保持している
@@ -629,7 +634,7 @@ let(:params_hash) {attributes_for(:user)}
 
 <br>
 
-### create
+#### create
 
 - 定義した factory を用いてモデルオブジェクトを作成する
 - DB への保存に成功したそのオブジェクトを返す

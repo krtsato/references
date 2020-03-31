@@ -48,7 +48,15 @@ Rails のコードを書きながらこちらも編集していきます．
   - [resource によるルーティング](#resource-によるルーティング)
   - [ルーティングにおける制約](#ルーティングにおける制約)
 - [Admin による Staff アカウント CRUD の実装](#admin-による-staff-アカウント-crud-の実装)
+  - [index アクション](#index-アクション)
+  - [show アクション](#show-アクション)
+  - [new アクション](#new-アクション)
+  - [edit アクション](#edit-アクション)
+  - [create アクション](#create-アクション)
+  - [update アクション](#update-アクション)
+  - [destroy アクション](#destroy-アクション)
 - [マスアサインメント脆弱性に対するセキュリティ強化](#マスアサインメント脆弱性に対するセキュリティ強化)
+  - [Strong Parameters による防御](#strong-parameters-による防御)
 - [Staff アカウントによる自身の CRUD 実装](#staff-アカウントによる自身の-crud-実装)
 - [Admin および Staff アカウントにおけるアクセス制御の実装](#admin-および-staff-アカウントにおけるアクセス制御の実装)
 - [Admin による Staff アカウントのログイン / ログアウト記録閲覧の実装](#admin-による-staff-アカウントのログイン--ログアウト記録閲覧の実装)
@@ -1043,7 +1051,7 @@ end
 
 - インスタンスを生成して admin/staff_members/new.html.erb を表示する
 - `<%= form_with ... do |f| %>` : ブロック変数 `f` にフォームビルダーがセットされる
-- `<%= render 'form', f: f %>` : 部分テンプレート _form.html.erb 内で `f` を参照する
+- `<%= render 'form', f: f %>` : 部分テンプレート \_form.html.erb 内で `f` を参照する
 
 ```ruby
 module Admin
@@ -1136,7 +1144,7 @@ end
 
 - `assign_attributes`
   - モデルオブジェクトの属性を一括設定する
-  - オブジェクトの変更をするだけで DB には保存しない  
+  - オブジェクトの変更をするだけで DB には保存しない
 - 本来は直接 params オブジェクトを取り回さない
   - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
 
