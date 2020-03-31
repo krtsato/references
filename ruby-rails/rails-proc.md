@@ -1019,7 +1019,7 @@ end
   - このページはお気に入り登録・リンクのコピペによって再表示され得る
   - show アクションにアクセスさせて，即座に edit の view へリダイレクトする
 - `redirect_to [:edit, :admin, staff_member]`
-  - 引数が配列の場合 Redirect は，配列要素からルーティング名を推定する
+  - 引数が配列の場合 redirect_to は配列要素からルーティング名を推定する
   - ルーティング名 : edit_admin_staff_memnber
   - URL パス : `/admin/staff_members/123/edit`
 - 本来は直接 params オブジェクトを取り回さない
@@ -1029,11 +1029,10 @@ end
 module Admin
   class StaffMembersController < Base
     # ...
-    def show
-      staff_member = StaffMember.find(params[:id])
-      redirect_to[:edit, :admin, staff_member]
-    end
-    # ...
++   def show
++     staff_member = StaffMember.find(params[:id])
++     redirect_to[:edit, :admin, staff_member]
++   end
   end
 end
 ```
@@ -1042,7 +1041,34 @@ end
 
 ### new アクション
 
+- インスタンス変数を生成して admin/staff_members/new.html.erb を表示する
+- `<%= form_with ... do |f| %>` : ブロック変数 `f` にフォームビルダーがセットされる
+- `<%= render 'form', f: f %>` : 部分テンプレート _form.html.erb 内で `f` を参照する
 
+```ruby
+module Admin
+  class StaffMembersController < Base
+    # ...
++   def new
++     @staff_member = StaffMember.new
++   end
+  end
+end
+```
+
+```erb
+<%= form_with model: @staff_member, url: [:admin, @staff_member] do |f| %>
+  <%= render 'form', f: f %>
+  <!-- ... -->
+<% end %>
+```
+
+```erb
+<div>
+  <%= f.label :email, 'メールアドレス', class: 'required' %>
+  <%= f.email_field :email, size: 32, required: true %>
+</div>
+```
 <br>
 
 ### edit アクション
