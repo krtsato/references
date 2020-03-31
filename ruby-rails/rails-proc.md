@@ -1041,7 +1041,7 @@ end
 
 ### new アクション
 
-- インスタンス変数を生成して admin/staff_members/new.html.erb を表示する
+- インスタンスを生成して admin/staff_members/new.html.erb を表示する
 - `<%= form_with ... do |f| %>` : ブロック変数 `f` にフォームビルダーがセットされる
 - `<%= render 'form', f: f %>` : 部分テンプレート _form.html.erb 内で `f` を参照する
 
@@ -1065,13 +1065,43 @@ end
 
 ```erb
 <div>
-  <%= f.label :email, 'メールアドレス', class: 'required' %>
-  <%= f.email_field :email, size: 32, required: true %>
+  <%= f.label :password, 'パスワード', class: 'required' %>
+  <%= f.password_field :password, size: 32, required: true %>
 </div>
 ```
+
 <br>
 
 ### edit アクション
+
+- レコードを取得して admin/staff_members/edit.html.erb を表示する
+- 編集フォームは新規作成フォームと共通で利用する
+- パスワードの変更は現時点でスキップする
+  - `f.object.new_record?` : DB に未保存ならばフォームを表示
+  - 表示のためにハッシュをデコードする必要がある
+  - 職員アカウントを更新する度にパスワードをデコード・ハッシュ化するのは実用的でない
+    - 漏洩・盗聴リスク
+    - 計算コスト
+
+```ruby
+module Admin
+  class StaffMembersController < Base
+    # ...
++   def edit
++     @staff_member = StaffMember.find(params[:id])
++   end
+  end
+end
+```
+
+```erb
++ <% if f.object.new_record? %>
+    <div>
+      <%= f.label :password, 'パスワード', class: 'required' %>
+      <%= f.password_field :password, size: 32, required: true %>
+    </div>
++ <% end %
+```
 
 <br>
 
