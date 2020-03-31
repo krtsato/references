@@ -18,6 +18,7 @@
   - [xexample](#xexample)
   - [skip](#skip)
 - [計画的テストコード](#計画的テストコード)
+- [Factory Bot の導入](#factory-bot-の導入)
 - [参考文献](#参考文献)
 
 <br>
@@ -68,13 +69,13 @@
 ```ruby
 # tag_name がタグとして機能する
 example "テストケース名", :tag_name do
- # ...
+  # ...
 end
 ```
 
 <br>
 
-## メソッド
+## RSpec のメソッド
 
 ### example
 
@@ -116,7 +117,7 @@ RSpec.describe String do
     example ...
     example ...
   end
-end  
+end
 ```
 
 <br>
@@ -126,6 +127,8 @@ end
 - オブジェクトを対象に expect する場合
   - `expect(T).to M`
     - T : ターゲットオブジェクト
+      - response
+      - など
     - M : マッチャーオブジェクト
       - eq
       - be
@@ -134,6 +137,7 @@ end
       - change + from / to / by
       - 配列 + include
       - raise_error
+      - redirect_to
       - route_to
       - be_routable
       - be_within + of
@@ -242,8 +246,11 @@ RSpec.describe User do
   end
 end
 ```
+
 <!-- markdownlint-disable no-trailing-punctuation -->
+
 ### let!
+
 <!-- markdownlint-enable no-trailing-punctuation -->
 
 - 事前実行される
@@ -536,6 +543,22 @@ end
 
 <br>
 
+### post
+
+- 第１引数の URL のフルパスに対して，第２引数のパラメータを送信する
+- `response`
+  - `ActionController::TestResponse` オブジェクトを返すメソッド
+  - アクションの実行結果に対する情報を保持している
+
+```ruby
+example 'fuga へリダイレクトする' do
+  post hoge_full_url, params: {request_hash: {k: v, ...}}
+  expect(response).to redirect_to(fuga_full_url)
+end
+```
+
+<br>
+
 ## 計画的テストコード
 
 - TDD はしないがテストケースを緩く書いておく
@@ -558,13 +581,14 @@ end
 
 <br>
 
-### Factory Bot の導入
+## Factory Bot
+
+### 導入
 
 - DB にテストデータを投入するための gem
-- 初期設定
-  - spec/rails_helper.rb に `config.include FactoryBot::Syntax::Methods`  を追記
-- spec/factories/ 配下でファクトリーファイルを作成する
-  - `FactoryBot.define do ... end` の中でファクトリーを定義する
+- spec/rails_helper.rb に `config.include FactoryBot::Syntax::Methods` を追記
+- spec/factories/ 配下で factory ファイルを作成する
+  - `FactoryBot.define do ... end` の中で factory を定義する
   - spec ファイルから `build` で呼び出せるようにシンボルを設定する
 
 ```ruby
@@ -588,9 +612,38 @@ RSpec.describe User::Authenticator do
 end
 ```
 
+<br>
+
+### Factory Bot のメソッド
+
+#### attributes_for
+
+- 定義した factory が持つハッシュオブジェクトを返却する
+- Rails の controller で `assign_attributes` メソッドの引数としてそのまま使用できる
+- update アクションで属性を一括設定する場合のテストで便利
+
+```ruby
+# params_hash は {email: 'member1@example.com', password: 'password', ...} となる
+let(:params_hash) {attributes_for(:user)}
+```
+
+<br>
+
+### create
+
+- 定義した factory を用いてモデルオブジェクトを作成する
+- DB への保存に成功したそのオブジェクトを返す
+
+```ruby
+# user は定義済みの factory
+let(:user) {create(:user)}
+```
+
+<br>
+
 ## 参考文献
 
 [Relish Publisher RSpec](https://relishapp.com/rspec/)  
-[使えるRSpec入門・その1「RSpecの基本的な構文や便利な機能を理解する」](https://qiita.com/jnchito/items/42193d066bd61c740612)  
-[使えるRSpec入門・その2「使用頻度の高いマッチャを使いこなす」](https://qiita.com/jnchito/items/2e79a1abe7cd8214caa5)  
+[使える RSpec 入門・その 1「RSpec の基本的な構文や便利な機能を理解する」](https://qiita.com/jnchito/items/42193d066bd61c740612)  
+[使える RSpec 入門・その 2「使用頻度の高いマッチャを使いこなす」](https://qiita.com/jnchito/items/2e79a1abe7cd8214caa5)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
