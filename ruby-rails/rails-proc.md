@@ -1082,6 +1082,8 @@ end
   - 職員アカウントを更新する度にパスワードをデコード・ハッシュ化するのは実用的でない
     - 漏洩・盗聴リスク
     - 計算コスト
+- 本来は直接 params オブジェクトを取り回さない
+  - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
 
 ```ruby
 module Admin
@@ -1135,6 +1137,8 @@ end
 - `assign_attributes`
   - モデルオブジェクトの属性を一括設定する
   - オブジェクトの変更をするだけで DB には保存しない  
+- 本来は直接 params オブジェクトを取り回さない
+  - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
 
 ```ruby
 module Admin
@@ -1157,6 +1161,23 @@ end
 <br>
 
 ### destroy アクション
+
+- 本来は直接 params オブジェクトを取り回さない
+  - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
+
+```ruby
+module Admin
+  class StaffMembersController < Base
+    # ...
++   def destroy
++     staff_member = StaffMember.find(params[:id])
++     staff_member.destroy!
++     flash.notice = '職員アカウントを削除しました'
++     redirect_to :admin_staff_members
++   end
+  end
+end
+```
 
 <br>
 
