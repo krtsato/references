@@ -1183,6 +1183,59 @@ end
 
 ## マスアサインメント脆弱性に対するセキュリティ強化
 
+### Strong Parameters による防御
+
+- admin/sessions_controller.rb を編集
+- `params.require(:admin_login_form).permit(:email, :password)`
+  - params オブジェクトが :admin_login_form キーを持つか確認する
+    - 持たない場合は例外 `ActionController::ParameterMissing` が発生する
+  - `その中で permit されていないパラメータを除去する
+    - 悪意のあるパラメータを含んだ，フォームからのリクエストを受け付けないため
+- staff/sessions_controller.rb・admin/staff_members_controller.rb も同様
+
+```ruby
+module Admin
+  class SessionsController < Base
+    def create
+-     @form = LoginForm.new(params[:admin_login_form])
++     @form = LoginForm.new(login_form_params)
+      # ...
+    end
+
+    private
+
++   def login_form_params
++     params.require(:admin_login_form).permit(:email, :password)
++   end
+  end
+end
+```
+
+```ruby
+module Admin
+  class StaffMembersController < Base
+    def create
+-     @staff_member = StaffMember.new(params[:staff_member])
++     @staff_member = StaffMember.new(staff_member_params)
+      # ...
+    end
+
+    def update
+-     @staff_member.assign_attributes(params[:staff_member])
++     @staff_member.assign_attributes(staff_member_params)
+      # ...
+    end
+
+    private
+
+    def staff_member_params
+      params.require(:staff_member).permit(:email, :password, ...)
+    end
+  end
+end
+
+```
+
 <br>
 
 ## Staff アカウントによる自身の CRUD 実装
