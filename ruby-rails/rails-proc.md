@@ -106,7 +106,7 @@ Rails のコードを書きながらこちらも編集していきます．
   - Top についての controller クラスは
   - ApplicationController を継承する
 - Rubocop に注意されるので `module ... end` を明記する
-- staff・customer も同様
+- Staff・Customer も同様
 
 <br>
 
@@ -154,7 +154,7 @@ Rails のコードを書きながらこちらも編集していきます．
 - application.css を削除して app/assets/stylesheets 配下でドメインを分割
   - admin.css が `*= require_tree ./admin` する
     - admin/hoge.scss でスタイリング
-    - staff・customer も同様
+    - Staff・Customer も同様
 - SCSS での変数定義を別ファイルで行う
   - e.g. 色を変数で表す
     - app/assets/stylesheets/admin/\_colors.scss
@@ -1237,6 +1237,8 @@ end
 - `bundle exec rails g controller staff/accounts` する
 - controllers/staff/base.rb を継承させて，ログイン中の職員データを返す
 - view ファイルをファイルを作成する
+  - show ページ
+  - show ページへ誘導する header リンク
 
 ```ruby
 module Staff
@@ -1303,6 +1305,57 @@ end
 <br>
 
 ## Admin および Staff アカウントにおけるアクセス制御の実装
+
+### ページアクセスにおける認証
+
+- Admin の認証状態に応じてアクセスページを制限する
+- `before_action :func` : controller に書かれた各アクションの実行直前にメソッドを呼ぶ
+- `skip_before_action :func` : `before_action` に指定したメソッドを controller 内で実行しない
+  - SessionsController : そもそも認証を行う必要があるため
+  - TopController : 未ログインでアクセスするトップページのため
+- Staff も同様
+
+```ruby
+module Admin
+  class Base < ApplicationController
++   before_action :authorize
+
+    private
+
++   def authorize
++     return if current_administrator.present?
++     flash.alert = '管理者としてログインして下さい'
++     redirect_to :admin_login
++   end
+  end
+end
+```
+
+```ruby
+module Admin
+  class TopController < Base
+    skip_before_action :authorize
+    # ...
+  end
+end
+```
+
+```ruby
+module Admin
+  class SessionsController < Base
+    skip_before_action :authorize
+    # ...
+  end
+end
+```
+
+<br>
+
+### Admin による Staff の強制ログアウト
+
+<br>
+
+### セッションタイムアウト
 
 <br>
 
