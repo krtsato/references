@@ -901,6 +901,7 @@ end
 - URL パスに id パラメタを埋め込む必要はない
   - 職員が自身のアカウントを管理できる = ログインしている
   - id は session オブジェクトから取得できる
+  - 管理者が複数の職員の中から１人を指名する = `/admin/staff_members/:id`
 
 ```ruby
 namespace :staff do
@@ -1267,7 +1268,11 @@ end
 
 - [staff_members update アクション](#staff_members-update-アクション)との違い
   - `@staff_member = current_staff_member`
+    - 自分自身のアカウント情報を編集するため session から id を取得する
+    - 理由は [resource によるルーティング](#resource-によるルーティング)を参照
   - `redirect_to :staff_account`
+    - シンボルが表す URL は [ルーティング表](#resource-によるルーティング)で確認
+    - この場合は show ページに戻る
 
 ```ruby
 module Staff
