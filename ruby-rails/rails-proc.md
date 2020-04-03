@@ -396,7 +396,7 @@ end
 
 - `bundle exec rails g controller errors` する
 - errors_controller.rb で例外処理に応じた view ファイルを指定する
-- view ファイルを作る
+- view ファイルを作成する
 - 存在しない URL を入力して意図的な例外を発生させる
 
 ```ruby
@@ -457,8 +457,6 @@ end
 
 ```ruby
 class ApplicationController < ActionController::Base
-  # ...
-
   # 例外処理用のクラス
   class Forbidden < ActionController::ActionControllerError; end
   class IpAddressRejected < ActionController::ActionControllerError; end
@@ -748,7 +746,7 @@ end
       - BCrypt では比較演算子がオーバーライドされている
     - インスタンスが保持しているハッシュ値と同じならば true を返す
 - sessions_controller.rb に session 追加の機能を書く
-  - 本来は直接 params オブジェクトを取り回さない
+  - 本来はフォームから送信された params オブジェクトを直に取り回すべきでない
   - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
 - 認証の手順
   - email から staff_member を取得する
@@ -782,7 +780,6 @@ end
 ```ruby
 module Staff
   class SessionsController < Base
-    # ...
 +   def create
 +     @form = LoginForm.new(params[:staff_login_form])
 +     if @form.email.present?
@@ -964,7 +961,7 @@ end
 
 ## Admin による Staff アカウント CRUD の実装
 
-### index アクション
+### staff_members index アクション
 
 - 一覧表示する seed データを db/seeds/development/staff_members.rb に用意する
 - `bundle exec rails db:migrate:reset` の後に `db:seed` することで seed の重複エラーを回避
@@ -1019,7 +1016,7 @@ end
 
 <br>
 
-### show アクション
+### staff_members show アクション
 
 - データを閲覧する場合に限らず，edit アクションにリダイレクトするだけの場合もある
   - e.g. update に失敗して編集フォームが再表示される場合
@@ -1030,13 +1027,10 @@ end
   - 引数が配列の場合 redirect_to は配列要素からルーティング名を推定する
   - ルーティング名 : edit_admin_staff_memnber
   - URL パス : `/admin/staff_members/123/edit`
-- 本来は直接 params オブジェクトを取り回さない
-  - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
 
 ```ruby
 module Admin
   class StaffMembersController < Base
-    # ...
 +   def show
 +     staff_member = StaffMember.find(params[:id])
 +     redirect_to[:edit, :admin, staff_member]
@@ -1047,7 +1041,7 @@ end
 
 <br>
 
-### new アクション
+### staff_members new アクション
 
 - インスタンスを生成して admin/staff_members/new.html.erb を表示する
 - `<%= form_with ... do |f| %>` : ブロック変数 `f` にフォームビルダーがセットされる
@@ -1056,7 +1050,6 @@ end
 ```ruby
 module Admin
   class StaffMembersController < Base
-    # ...
 +   def new
 +     @staff_member = StaffMember.new
 +   end
@@ -1080,7 +1073,7 @@ end
 
 <br>
 
-### edit アクション
+### staff_members edit アクション
 
 - レコードを取得して admin/staff_members/edit.html.erb を表示する
 - 編集フォームは新規作成フォームと共通で利用する
@@ -1090,13 +1083,10 @@ end
   - 職員アカウントを更新する度にパスワードをデコード・ハッシュ化するのは実用的でない
     - 漏洩・盗聴リスク
     - 計算コスト
-- 本来は直接 params オブジェクトを取り回さない
-  - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
 
 ```ruby
 module Admin
   class StaffMembersController < Base
-    # ...
 +   def edit
 +     @staff_member = StaffMember.find(params[:id])
 +   end
@@ -1115,16 +1105,15 @@ end
 
 <br>
 
-### create アクション
+### staff_members create アクション
 
 - バリデーションの実装は[後述](#db-格納前の正規化とバリデーションの実装)
-- 本来は直接 params オブジェクトを取り回さない
+- 本来はフォームから送信された params オブジェクトを直に取り回すべきでない
   - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
 
 ```ruby
 module Admin
   class StaffMembersController < Base
-    # ...
 +   def create
 +     @staff_member = StaffMember.new(params[:staff_member])
 +     if @staff_member.save
@@ -1140,18 +1129,17 @@ end
 
 <br>
 
-### update アクション
+### staff_members update アクション
 
 - `assign_attributes`
   - モデルオブジェクトの属性を一括設定する
   - オブジェクトの変更をするだけで DB には保存しない
-- 本来は直接 params オブジェクトを取り回さない
+- 本来はフォームから送信された params オブジェクトを直に取り回すべきでない
   - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
 
 ```ruby
 module Admin
   class StaffMembersController < Base
-    # ...
 +   def update
 +     @staff_member = StaffMember.find(params[:id])
 +     @staff_member.assign_attributes(params[:staff_member])
@@ -1168,15 +1156,11 @@ end
 
 <br>
 
-### destroy アクション
-
-- 本来は直接 params オブジェクトを取り回さない
-  - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
+### staff_members destroy アクション
 
 ```ruby
 module Admin
   class StaffMembersController < Base
-    # ...
 +   def destroy
 +     staff_member = StaffMember.find(params[:id])
 +     staff_member.destroy!
@@ -1245,7 +1229,71 @@ end
 
 <br>
 
-## Staff アカウントによる自身の CRUD 実装
+## Staff アカウントによる自身の閲覧・編集機能の実装
+
+### staff_accounts show アクション
+
+- `bundle exec rails g controller staff/accounts` する
+- controllers/staff/base.rb を継承させて，ログイン中の職員データを返す
+- view ファイルをファイルを作成する
+
+```ruby
+module Staff
+  class AccountsController < Base
+    def show
+      @staff_member = current_staff_member
+    end
+  end
+end
+```
+
+<br>
+
+### staff_accounts edit アクション
+
+```ruby
+module Staff
+  class AccountsController < Base
++   def edit
++     @staff_member = current_staff_member
++   end
+  end
+end
+```
+
+<br>
+
+### staff_accounts update アクション
+
+- [staff_members update アクション](#staff_members-update-アクション)との違い
+  - `@staff_member = current_staff_member`
+  - `redirect_to :staff_account`
+
+```ruby
+module Staff
+  class AccountsController < Base
++   def update
++     @staff_member = current_staff_member
++     @staff_member.assign_attributes(staff_member_params)
++     if @staff_member.save
++       flash.notice = 'アカウント情報を更新しました'
++       redirect_to :staff_account
++     else
++       render action: 'edit'
++     end
++   end
+
++   private
+
++   def staff_member_params
++     params.require(:staff_member).permit(
++       :email, :family_name, :given_name,
++       :family_name_kana, :given_name_kana
++     )
++   end
+  end
+end
+```
 
 <br>
 
