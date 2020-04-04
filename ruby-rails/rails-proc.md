@@ -166,7 +166,7 @@ Rails のコードを書きながらこちらも編集していきます．
 ### アセットのプリコンパイル
 
 - 分離したアセットのエントリポイントを含める
-- config/initializers/assets.rb に追記
+- config/initializers/assets.rb に追記する
 
 ```ruby
 + Rails.application.config.assets.precompile += %w(admin.css staff.css customer.css)
@@ -182,7 +182,7 @@ Rails のコードを書きながらこちらも編集していきます．
   - e.g. 現状 admin/top という controller 名から app/views/layouts/admin/top.html.erb が選択される
   - 今後 admin/hoge という controller がアクションを実行するとき
   - app/views/layouts/admin.html.erb をエントリポイントにしたい
-- app/controllers/application_controller.rb に追記
+- app/controllers/application_controller.rb に追記する
   - 正規表現を使ってレイアウト選択を一般化する
     - \A : 文字列の先頭
     - admin/ または sraff/ または customer/
@@ -422,7 +422,7 @@ end
 #### ActiveRecord::RecordNotFound の処理
 
 - DB にリクエストしたレコードがなかった場合も 404 にしてみる
-- application_controller.rb に追記
+- application_controller.rb に追記する
 
 ```ruby
 class ApplicationController < ActionController::Base
@@ -502,7 +502,7 @@ end
 - staff の会員情報を管理する DB テーブル staff_members を作成する
   - admin は同様の手順・異なる DB スキーマで実装する
 - `bundle exec rails g model StaffMember` 単数形に注意
-- マイグレーションスクリプトに追記する
+- マイグレーションスクリプトに追記
   - ブロック変数 `t` には TableDefinition オブジェクトがセットされる
   - このオブジェクトの各種メソッドがテーブルの定義を行う
   - index の設定
@@ -1353,9 +1353,89 @@ end
 
 ### Admin による Staff の強制ログアウト
 
+- Admin が Staff に対して `suspended = true` する場合
+  - Staff が自主的にログアウトするまでアカウントを停止できない
+- Staff が退職する場合
+  - アカウント終了日を迎えても利用を継続できてしまう
+- models/staff_member.rb にアカウントが active か確認するメソッドを追記する
+- controllers/staff/base.rb の `before_action` でアカウント状態を確認する
+
+```ruby
+class StaffMember < ApplicationRecord
++ def active?
++   !suspended? && start_date <= Time.zone.today && (end_date.nil? || end_date > Time.zone.today)
++ end
+end
+```
+
+```ruby
+module Staff
+  class Base < ApplicationController
++   before_action :check_account
+
+    private
+
++   def check_account
++     return if current_staff_member.blank? || current_staff_member.active?
++
++     session.delete(:staff_member_id)
++     flash.alert = 'アカウントが無効になりました'
++     redirect_to :staff_root
++   end
+  end
+end
+```
+
 <br>
 
 ### セッションタイムアウト
+
+- ログイン時刻を session オブジェクトに格納する
+- controllers/staff/base.rb の `before_action` で最終アクセス時間を確認する
+  - 変数 `TIMEOUT` はテストコードでも使用するため private にしない
+  - タイムアウト前にアクセスした場合，最終アクセス時間を現在時刻に更新する
+
+```ruby
+module Staff
+  class SessionsController < Base
+    def create
+      if Authenticator.new(staff_member).authenticate(@form.password)
+        if staff_member.suspended?
+          # ...
+        else
+          session[:staff_member_id] = staff_member.id
++         session[:last_access_time] = Time.current
+          go_to_staff_root('ログインしました')
+        end
+        # ...
+      end
+    end
+  end
+end
+```
+
+```ruby
+module Staff
+  class Base < ApplicationController
++   before_action :check_timeout
+
+    private
+
++   TIMEOUT = 60.minutes
++   def check_timeout
++     return if current_staff_member.blank?
++
++     if session[:last_access_time] >= TIMEOUT.ago
++       session[:last_access_time] = TIMEOUT.current
++     else
++       session.delete(:staff_member_id)
++       flash.alert = 'セッションがタイムアウトしました'
++       redirect_to :staff_login
++     end
++   end
+  end
+end
+```
 
 <br>
 
