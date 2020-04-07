@@ -17,8 +17,10 @@
   - [pending](#pending)
   - [xexample](#xexample)
   - [skip](#skip)
-  - [post](#post)
+  - [get・post・patch・delete](#getpostpatchdelete)
 - [計画的テストコード](#計画的テストコード)
+  - [テストケースだけを先に書いておく](#テストケースだけを先に書いておく)
+  - [shared_example・shared_context の分離](#shared_exampleshared_context-の分離)
 - [Factory Bot](#factory-bot)
   - [導入](#導入)
   - [Factory Bot のメソッド](#factory-bot-のメソッド)
@@ -548,7 +550,7 @@ end
 
 <br>
 
-### post
+### get・post・patch・delete
 
 - 第１引数  の URL のフルパスに対して，第２引数のパラメータを送信する
 - `response`
@@ -562,9 +564,22 @@ example 'fuga へリダイレクトする' do
 end
 ```
 
+- 認可のテストを書く場合 `before do ... end` と組み合わせるのが定石
+- example 実行直前に email, password を送信して認可されたユーザをを作る
+
+```ruby
+before do
+  post user_session_url, params: {
+    user_login_form: {email: user.email, password: 'password'}
+  }
+end
+```
+
 <br>
 
 ## 計画的テストコード
+
+### テストケースだけを先に書いておく
 
 - TDD はしないがテストケースを緩く書いておく
   - テストケースの中で expect しない
@@ -586,12 +601,24 @@ end
 
 <br>
 
+### shared_example・shared_context の分離
+
+- example・context をファイルを跨いで共有する
+- spec/rails_helper.rb に追記する
+  - `Dir[Rails.root.join("spec", "support", "**", "*.rb")].each {|f| require f}`
+  - spec/support/ 配下のファイルが自動的に読み込まれるようになる
+
+```ruby
+require 'rspec/rails'
++ Dir[Rails.root.join("spec", "support", "**", "*.rb")].each {|f| require f}
+```
+
 ## Factory Bot
 
 ### 導入
 
 - DB にテストデータを投入するための gem
-- spec/rails_helper.rb に `config.include FactoryBot::Syntax::Methods` を追記
+- spec/rails_helper.rb に `config.include FactoryBot::Syntax::Methods` を追記する
 - spec/factories/ 配下で factory ファイルを作成する
   - `FactoryBot.define do ... end` の中で factory を定義する
   - spec ファイルから `build` で呼び出せるようにシンボルを設定する

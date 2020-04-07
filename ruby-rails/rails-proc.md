@@ -48,17 +48,23 @@ Rails のコードを書きながらこちらも編集していきます．
   - [resource によるルーティング](#resource-によるルーティング)
   - [ルーティングにおける制約](#ルーティングにおける制約)
 - [Admin による Staff アカウント CRUD の実装](#admin-による-staff-アカウント-crud-の実装)
-  - [index アクション](#index-アクション)
-  - [show アクション](#show-アクション)
-  - [new アクション](#new-アクション)
-  - [edit アクション](#edit-アクション)
-  - [create アクション](#create-アクション)
-  - [update アクション](#update-アクション)
-  - [destroy アクション](#destroy-アクション)
+  - [staff_members index アクション](#staff_members-index-アクション)
+  - [staff_members show アクション](#staff_members-show-アクション)
+  - [staff_members new アクション](#staff_members-new-アクション)
+  - [staff_members edit アクション](#staff_members-edit-アクション)
+  - [staff_members create アクション](#staff_members-create-アクション)
+  - [staff_members update アクション](#staff_members-update-アクション)
+  - [staff_members destroy アクション](#staff_members-destroy-アクション)
 - [マスアサインメント脆弱性に対するセキュリティ強化](#マスアサインメント脆弱性に対するセキュリティ強化)
   - [Strong Parameters による防御](#strong-parameters-による防御)
-- [Staff アカウントによる自身の CRUD 実装](#staff-アカウントによる自身の-crud-実装)
+- [Staff アカウントによる自身の閲覧・編集機能の実装](#staff-アカウントによる自身の閲覧編集機能の実装)
+  - [staff_accounts show アクション](#staff_accounts-show-アクション)
+  - [staff_accounts edit アクション](#staff_accounts-edit-アクション)
+  - [staff_accounts update アクション](#staff_accounts-update-アクション)
 - [Admin および Staff アカウントにおけるアクセス制御の実装](#admin-および-staff-アカウントにおけるアクセス制御の実装)
+  - [ページアクセスにおける認証](#ページアクセスにおける認証)
+  - [Admin による Staff の強制ログアウト](#admin-による-staff-の強制ログアウト)
+  - [セッションタイムアウト](#セッションタイムアウト)
 - [Admin による Staff アカウントのログイン / ログアウト記録閲覧の実装](#admin-による-staff-アカウントのログイン--ログアウト記録閲覧の実装)
 - [DB 格納前の正規化とバリデーションの実装](#db-格納前の正規化とバリデーションの実装)
 - [プレゼンタによるフロントエンドのリファクタ](#プレゼンタによるフロントエンドのリファクタ)
@@ -1354,7 +1360,7 @@ end
 ### Admin による Staff の強制ログアウト
 
 - Admin が Staff に対して `suspended = true` する場合
-  - Staff が自主的にログアウトするまでアカウントを停止できない
+  - Staff が自主的にログアウトするまでアカウントを  停止できない
 - Staff が退職する場合
   - アカウント終了日を迎えても利用を継続できてしまう
 - models/staff_member.rb にアカウントが active か確認するメソッドを追記する
@@ -1404,7 +1410,7 @@ module Staff
           # ...
         else
           session[:staff_member_id] = staff_member.id
-+         session[:last_access_time] = Time.current
++         session[:staff_last_access_time] = Time.current
           go_to_staff_root('ログインしました')
         end
         # ...
@@ -1425,8 +1431,8 @@ module Staff
 +   def check_timeout
 +     return if current_staff_member.blank?
 +
-+     if session[:last_access_time] >= TIMEOUT.ago
-+       session[:last_access_time] = TIMEOUT.current
++     if session[:staff_last_access_time] >= TIMEOUT.ago
++       session[:staff_last_access_time] = Time.current
 +     else
 +       session.delete(:staff_member_id)
 +       flash.alert = 'セッションがタイムアウトしました'
