@@ -406,6 +406,40 @@ end
 
 <br>
 
+#### shared_examples のファイル分割
+
+- spec/support 配下に共有エグザンプルを配置する
+- rails_helper.rb で Rails が読み込むように設定する
+- spec ファイルから `include_examples 'shared_examples_name', 'controller/name'` する
+  - spec ファイルから `controller/name` を渡すことでエグザンプルを共有する
+- 後述の shared_context も同様に `include_context 'shared_examples'` する
+
+```ruby
+Dir[Rails.root.join('spec/support/**/*.rb')].sort.each {|f| require f}
+```
+
+```ruby
+RSpec.describe 'User アカウント', type: :request do
+  context 'when ログイン前' do
+    include_examples 'a blocked user controller', 'user/accounts'
+  end
+  # ...
+end
+```
+
+```ruby
+shared_examples 'a blocked user controller' do |controller|
+  let(:args) {host: hoge, controller: controller}
+
+  describe '#show' do
+    example 'ログインフォームにリダイレクト' do
+      get url_for(args.merge(action: :show))
+      expect(response).to redirect_to(user_login_url)
+    end
+  end
+end
+```
+
 ### shared_context
 
 - context を再利用するメソッド

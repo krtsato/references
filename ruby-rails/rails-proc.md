@@ -1360,11 +1360,13 @@ end
 ### Admin による Staff の強制ログアウト
 
 - Admin が Staff に対して `suspended = true` する場合
-  - Staff が自主的にログアウトするまでアカウントを  停止できない
+  - Staff が自主的にログアウトするまでアカウントを停止できない
 - Staff が退職する場合
   - アカウント終了日を迎えても利用を継続できてしまう
 - models/staff_member.rb にアカウントが active か確認するメソッドを追記する
 - controllers/staff/base.rb の `before_action` でアカウント状態を確認する
+- Admin も同等
+  - ただし `active?` メソッドは使えないので `!current_administrator.suspended?` とする
 
 ```ruby
 class StaffMember < ApplicationRecord
