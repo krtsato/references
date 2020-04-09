@@ -219,6 +219,28 @@ end
 
 <br>
 
+#### before の処理を適用しない
+
+- example を引数としてメタデータを持っていたら適用しない
+  - `example.metadata[:skip_before]`
+  - before の中で `return if example.metadata[:skip_before]` はできない
+
+```ruby
+RSpec.describe 'User アカウント', type: :request do
+  before do |example|
+    unless example.metadata[:skip_before]
+      # ...
+    end
+  end
+
+  describe 'hoge' do
+    example 'fuga', :skip_before do
+      # ...
+    end
+  end
+end
+```
+
 ### let
 
 - インスタンス変数やローカル変数を置き換える
