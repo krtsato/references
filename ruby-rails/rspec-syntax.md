@@ -669,6 +669,8 @@ require 'rspec/rails'
 + Dir[Rails.root.join("spec", "support", "**", "*.rb")].each {|f| require f}
 ```
 
+<br>
+
 ## Factory Bot
 
 ### 導入
@@ -682,7 +684,7 @@ require 'rspec/rails'
 ```ruby
 FactoryBot.define do
   factory :user do # シンボルを設定する
-    sequence(:email) {|n| "member#{n}@example.com"} # n 連番で作成される
+    sequence(:email) {|n| " user#{n}@example.com"} # n 連番で作成される
     password {'password'}
     # ...
   end
@@ -711,7 +713,7 @@ end
 - update アクションで属性を一括設定する場合のテストで便利
 
 ```ruby
-# params_hash は {email: 'member1@example.com', password: 'password', ...} となる
+# params_hash は {email: 'user1@example.com', password: 'password', ...} となる
 let(:params_hash) {attributes_for(:user)}
 ```
 
@@ -725,6 +727,38 @@ let(:params_hash) {attributes_for(:user)}
 ```ruby
 # user は定義済みの factory
 let(:user) {create(:user)}
+```
+
+<br>
+
+## Session Timeout のテスト
+
+- spec/rails_helper.rb に `config.include ActiveSupport::Testing::TimeHelpers` を追記する
+- `travel_to` で仮想的に時間を進めて Session Timeout を発生させる
+  - `from_now.advance(seconds: 1)` : 60分1秒進める
+
+```ruby
+module User
+  class Base < ApplicationController
+    before_action :check_timeout
+
+    private
+
+    TIMEOUT = 60.minutes # テストから参照される
+    def check_timeout
+      # session timeout procedure
+    end
+  end
+end
+```
+
+```ruby
+example 'Session Timeout' do
+  # TIMEOUT = 60.minutes を参照する
+  travel_to User::Base::TIMEOUT.from_now.advance(seconds: 1)
+  get user_account_url
+  expect(response).to redirect_to(user_login_url)
+end
 ```
 
 <br>
