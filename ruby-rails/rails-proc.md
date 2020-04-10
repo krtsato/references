@@ -1521,6 +1521,35 @@ end
 
 ### ログイン・ログアウト・拒否の記録
 
+- staff/sessions_controller.rb に追記
+  - ログイン・ログアウト時に履歴イベントを作成する
+  - このとき `type` を文字列型で指定する
+
+```ruby
+module Staff
+  class SessionsController < Base
+    def create
+      # ...
+      if Staff::Authenticator.new(staff_member).authenticate(@form.password)
+        if staff_member.suspended?
++         staff_member.events.create!(type: 'rejected')
+          # ...
+        else
++         staff_member.events.create!(type: 'logged_in')
+          # ...
+        end
+      # ...
+      end
+    end
+
+    def destroy
++     current_staff_member&.events&.create!(type: 'logged_out')
+      # ...
+    end
+  end
+end
+```
+
 <br>
 
 ## DB 格納前の正規化とバリデーションの実装
