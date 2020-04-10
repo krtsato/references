@@ -1500,6 +1500,7 @@ end
     - `class_name: 'StaffMember'` : `:member` だけでは不明瞭なのでクラスを指定する
     - `:member` とした場合 `@event.member` のように呼び出せる
     - `foreign_key: staff_member_id` : このままでは外部キーが `:member_id` になってしまうので指定する
+    - `inverse_of: :events` : 同値データの参照時に，経由するインスタンスが異なると `==` で false になる問題を回避
 
 ```ruby
 class StaffMember < ApplicationRecord
@@ -1511,7 +1512,7 @@ end
 class StaffEvent < ApplicationRecord
   self.inheritance_column = nil
 
-  belongs_to :member, class_name: 'StaffMember', foreign_key: 'staff_member_id'
+  belongs_to :member, class_name: 'StaffMember', foreign_key: 'staff_member_id',  inverse_of: :events
   alias_attribute :occurred_at, :created_at
 end
 ```
@@ -1563,4 +1564,5 @@ end
 [Method: BCrypt::Password#==](https://www.rubydoc.info/github/codahale/bcrypt-ruby/BCrypt%2FPassword:==)  
 [7 Patterns to Refactor Fat ActiveRecord Models](https://codeclimate.com/blog/7-ways-to-decompose-fat-activerecord-models/)  
 [Ruby と Rails における Time, Date, DateTime, TimeWithZone の違い](https://qiita.com/jnchito/items/cae89ee43c30f5d6fa2c#activesupporttimewithzone%E3%82%AF%E3%83%A9%E3%82%B9)  
+[Active Record の関連付け](https://railsguides.jp/association_basics.html)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
