@@ -763,6 +763,14 @@ end
 
 <br>
 
+### クラスの継承関係を調べる
+
+- クラスオブジェクトのメソッドがどんな子孫関係にあるのか調べる
+- `bin/rails r 'puts <クラス名>.new.<メソッド名>.class.ancestors'`
+- 表示されたクラスを公式 API ドキュメントなどで調査していく
+
+<br>
+
 ## 参考文献
 
 [Relish Publisher RSpec](https://relishapp.com/rspec/)  
