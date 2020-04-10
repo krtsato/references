@@ -37,7 +37,7 @@ Rails のコードを書きながらこちらも編集していきます．
   - [認証後の session によるユーザ管理](#認証後の-session-によるユーザ管理)
   - [ログイン用のルーティング](#ログイン用のルーティング)
 - [フロントエンドから流れに乗るユーザ認証の本実装](#フロントエンドから流れに乗るユーザ認証の本実装)
-  - [ログイン / ログアウトのリンク](#ログイン--ログアウトのリンク)
+  - [ログイン・ログアウトのリンク](#ログインログアウトのリンク)
   - [form_with メソッド](#form_with-メソッド)
   - [ログインフォームの作成](#ログインフォームの作成)
   - [ログイン時の session の追加](#ログイン時の-session-の追加)
@@ -65,7 +65,10 @@ Rails のコードを書きながらこちらも編集していきます．
   - [ページアクセスにおける認証](#ページアクセスにおける認証)
   - [Admin による Staff の強制ログアウト](#admin-による-staff-の強制ログアウト)
   - [セッションタイムアウト](#セッションタイムアウト)
-- [Admin による Staff アカウントのログイン / ログアウト記録閲覧の実装](#admin-による-staff-アカウントのログイン--ログアウト記録閲覧の実装)
+- [Admin による Staff アカウントのログイン・ログアウト記録閲覧の実装](#admin-による-staff-アカウントのログインログアウト記録閲覧の実装)
+  - [StaffEvent モデルの作成](#staffevent-モデルの作成)
+  - [StaffEvent・StaffMember の関連付け](#staffeventstaffmember-の関連付け)
+  - [ログイン・ログアウト・拒否の記録](#ログインログアウト拒否の記録)
 - [DB 格納前の正規化とバリデーションの実装](#db-格納前の正規化とバリデーションの実装)
 - [プレゼンタによるフロントエンドのリファクタ](#プレゼンタによるフロントエンドのリファクタ)
 - [Customer アカウントの CRUD 実装](#customer-アカウントの-crud-実装)
@@ -660,7 +663,7 @@ end
 
 ## フロントエンドから流れに乗るユーザ認証の本実装
 
-### ログイン / ログアウトのリンク
+### ログイン・ログアウトのリンク
 
 - views/shared/\_header.html.erb を DRY にする
   - ユーザ認証はユーザの種類によって処理が異なる
@@ -1447,7 +1450,75 @@ end
 
 <br>
 
-## Admin による Staff アカウントのログイン / ログアウト記録閲覧の実装
+## Admin による Staff アカウントのログイン・ログアウト記録閲覧の実装
+
+### StaffEvent モデルの作成
+
+- StaffEvent : Staff のログイン・ログアウトを記録するモデル
+  - id : 整数型．主キー
+  - staff_member_id : 整数型．外部キー
+  - type : 文字列型．logged_in・logged_out・reject のいすれか
+  - created_at : 日時型．モデルの性質上 updated_at は起こり得ない
+- StaffMember : StaffEvent = 1 : 多
+- `bundle exec rails g model staff_event` する
+- マイグレーションスクリプトを編集
+  - `t.references :staff_member` : シンボル名末尾に `_id` を付与した整数カラムを作成する．
+    - `null: false` : null を許容しない
+    - `index: false` : references はデフォルトで index を設定するためオフにする．
+    - `foreign_key: true` : staff_members・staff_events のテーブル間に外部キー制約を設ける
+  - `add_index :staff_events, [:staff_member_id, :created_at]`
+    - staff_member_id・created_at の組み合わせに対して，複合インデックスを設定する
+    - イベントを職員別に・発生時間順に並べて取得する場合に便利
+- web コンテナで確認 `psql -U rrrp_user -h db rrrp_dev_db`
+
+```ruby
+class CreateStaffEvents < ActiveRecord::Migration[6.0]
+  def change
+    create_table :staff_events do |t|
+      t.references :staff_member, null: false, index: false, foreign_key: true # 職員レコードへの外部キー
+      t.string :type, null: false # イベントタイプ
+      t.datetime :created_at, null: false # 発生時刻
+    end
+
+    add_index :staff_events, :created_at
+    add_index :staff_events, [:staff_member_id, :created_at]
+  end
+end
+```
+
+### StaffEvent・StaffMember の関連付け
+
+- models/staff_member.rb に追記
+  - `has_many :events` : 一対多となる StaffMember のインスタンスメソッド `events` を定義する
+  - `class_name: 'StaffEvent'` : `:event` だけでは不明瞭なのでクラスを指定する
+    - 関連付けからクラス名を推定できるとき省略可能 `has_many :staff_events`
+    - `:events` とした場合 `@staff_member.events` のように呼び出せる
+  - `dependent: :destroy`: StaffMember より前に StaffEvent を削除する
+- models/staff_event.rb に追記
+  - `self.inheritance_column = nil` : `type` というカラムが STI (Single Table Inheritance) と見なされるのを無効化
+  - `belongs_to :member` : StaffEvent モデルが `member` というインスタンスメソッドで StaffMember を参照する
+    - `class_name: 'StaffMember'` : `:member` だけでは不明瞭なのでクラスを指定する
+    - `:member` とした場合 `@event.member` のように呼び出せる
+    - `foreign_key: staff_member_id` : このままでは外部キーが `:member_id` になってしまうので指定する
+
+```ruby
+class StaffMember < ApplicationRecord
++ has_many :events, class_name: 'StaffEvent', dependent: :destroy
+end
+```
+
+```ruby
+class StaffEvent < ApplicationRecord
+  self.inheritance_column = nil
+
+  belongs_to :member, class_name: 'StaffMember', foreign_key: 'staff_member_id'
+  alias_attribute :occurred_at, :created_at
+end
+```
+
+<br>
+
+### ログイン・ログアウト・拒否の記録
 
 <br>
 
