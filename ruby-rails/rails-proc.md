@@ -68,7 +68,11 @@ Rails のコードを書きながらこちらも編集していきます．
 - [Admin による Staff アカウントのログイン・ログアウト記録閲覧の実装](#admin-による-staff-アカウントのログインログアウト記録閲覧の実装)
   - [StaffEvent モデルの作成](#staffevent-モデルの作成)
   - [StaffEvent・StaffMember の関連付け](#staffeventstaffmember-の関連付け)
-  - [ログイン・ログアウト・拒否の記録](#ログインログアウト拒否の記録)
+  - [ログイン履歴の記録](#ログイン履歴の記録)
+  - [ログイン履歴の表示](#ログイン履歴の表示)
+  - [ページネーション](#ページネーション)
+    - [kaminari のカスタマイズ](#kaminari-のカスタマイズ)
+  - [StaffEvent による StaffMember 取得時の N + 1 問題](#staffevent-による-staffmember-取得時の-n--1-問題)
 - [DB 格納前の正規化とバリデーションの実装](#db-格納前の正規化とバリデーションの実装)
 - [プレゼンタによるフロントエンドのリファクタ](#プレゼンタによるフロントエンドのリファクタ)
 - [Customer アカウントの CRUD 実装](#customer-アカウントの-crud-実装)
@@ -1601,11 +1605,53 @@ module Admin
 end
 ```
 
-- hoge
+### ページネーション
+
+- seed を投入する
+- ページネーションに使う gem kaminari をセットアップする
+  - `bundle exec rails g kaminari:config`
+  - `bundle exec rails g kaminari:views default`
+  - config/locales/views/paginate.ja.yml を作成する
+  - コンテナを再起動して反映させる
+    - config/initializers/・config/locales/ 配下の編集後は忘れず実行
+
+```yml
+ja:
+  views:
+    pagination:
+      first: "先頭"
+      last: "末尾"
+      previous: "前"
+      next: "次"
+      truncate: "..."
+```
+
+- admin/staff_events_controller.rb に追記する
+  - `page` は kaminari が提供するメソッド
+  - 引数に指定された整数をページ番号と見なす
+  - 引数が nil の場合は `page(1)` となる
+- view ファイルに paginate の処理を追記する
 
 ```ruby
-
+module Admin
+  class StaffEventsController < Base
+    def index
+      if params[:staff_member_id]
+        # ...
+      end
++     @events = @events.page(params[:page])
+    end
+  end
+end
 ```
+
+<br>
+
+#### kaminari のカスタマイズ
+
+<br>
+
+### StaffEvent による StaffMember 取得時の N + 1 問題
 
 <br>
 
