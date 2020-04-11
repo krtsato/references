@@ -865,6 +865,7 @@ end
 
 ### resources によるルーティング
 
+- リソースとはアクションによる操作の対象物を意味する
 - 複数リソースを CRUD する場合に用いる
   - e.g. 管理者 Admin が 職員 Staff を一覧表示がする
 - `resources :controller_names`
@@ -1519,7 +1520,7 @@ end
 
 <br>
 
-### ログイン・ログアウト・拒否の記録
+### ログイン履歴の記録
 
 - staff/sessions_controller.rb に追記
   - ログイン・ログアウト時に履歴イベントを作成する
@@ -1548,6 +1549,62 @@ module Staff
     end
   end
 end
+```
+
+<br>
+
+### ログイン履歴の表示
+
+- ルーティングを追加する
+  - 特定の職員についてログイン履歴を表示する
+  - すべての職員のログイン履歴を表示する
+- view ファイルに `:admin_staff_events` へのリンクを追加する
+- view ファイルを作成する
+  - `:admin_staff_events` から `:admin_staff_member_staff_events` に遷移させる
+
+| アクション内容                 | HTTP メソッド | アクション名 | URL パス                                           | ルーティング名                   |
+| ------------------------------ | ------------- | ------------ | -------------------------------------------------- | -------------------------------- |
+| ある職員のログイン履歴一覧表示 | GET           | index        | /admin/staff_members/:staff_member_id/staff_events | :admin_staff_member_staff_events |
+| 全職員のログイン履歴一覧表示   | GET           | index        | /admin/staff_events                                | :admin_staff_events              |
+
+```ruby
+Rails.application.routes.draw do
+  config = Rails.application.config.rrrp
+
+  constraints host: config[:admin][:host] do
+    namespace :admin, path: config[:admin][:path] do
+      # ...
++     resources :staff_members do
++       resources :staff_events, only: [:index]
++     end
++    resources :staff_events, only: [:index]
+    end
+  end
+end
+```
+
+- `bundle exec rails g controller admin/staff_events` して index アクションを提供する
+- `params[:staff_member_id]` の有無によって２種類の index 表示を区別する
+
+```ruby
+module Admin
+  class StaffEventsController < Base
+    def index
+      if params[:staff_member_id]
+        @staff_member = StaffMember.find(params[:staff_member_id])
+        @events = @staff_member.events.order(occurred_at: :desc)
+      else
+        @events = StaffEvent.order(occurred_at: :desc)
+      end
+    end
+  end
+end
+```
+
+- hoge
+
+```ruby
+
 ```
 
 <br>
