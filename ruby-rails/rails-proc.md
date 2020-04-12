@@ -518,14 +518,9 @@ end
 - マイグレーションスクリプトに追記
   - ブロック変数 `t` には TableDefinition オブジェクトがセットされる
   - このオブジェクトの各種メソッドがテーブルの定義を行う
-  - index の設定
-    - 検索 / ソートの高速化
-      - メールアドレス
-        - PostgreSQL の仕様でインデックスは大文字 / 小文字の区別あり
-        - SQL の関数 `LOWER(email)` で小文字にする
-        - 通常は `:email` のように指定する
-      - 苗字・名前
-        - フリガナでソートして一覧表示するとき効果的
+  - index を設定することで検索・ソートを高速化する
+    - メールアドレス
+    - 苗字・名前
 - `bundle exec rails db:migrate` する
 - `bundle exec rails r "StaffMember.columns.each {|c| p [c.name, c.type]}"` でカラム構成を確認
   - 主キーはデフォルト設定される `["id", :integer]`
@@ -547,7 +542,7 @@ class CreateStaffMembers < ActiveRecord::Migration[6.0]
       t.timestamps
     end
 
-    add_index :staff_members, "LOWER(email)", unique: true
+    add_index :staff_members, :email, unique: true
     add_index :staff_members, [:family_name_kana, :given_name_kana]
   end
 end
@@ -763,7 +758,6 @@ end
   - 今後 [Strong parameters](#マスアサインメント脆弱性に対するセキュリティ強化) で置換する
 - 認証の手順
   - email から staff_member を取得する
-    - `find_by("LOWER(email) = ?", @form.email.downcase)` : `?` に第２引数が代入される
   - `suspended` に関係なくパスワードのハッシュ値比較などを行う
   - `suspended` かどうか確認する
 - flash・session オブジェクトに値を設定する
@@ -796,7 +790,7 @@ module Staff
 +   def create
 +     @form = LoginForm.new(params[:staff_login_form])
 +     if @form.email.present?
-+       staff_member = StaffMember.find_by('LOWER(email) = ?', @form.email.downcase)
++       staff_member = StaffMember.find_by(email: @form.email.downcase)
 +     end
 +
 +     if Authenticator.new(staff_member).authenticate(@form.password)
@@ -1792,6 +1786,87 @@ class StaffMember < ApplicationRecord
 + KATAKANA_REGEXP = /\A[\p{katakana}\u{30fc}]+\z/.freeze
 + validates :family_name, :given_name, presence: true
 + validates :family_name_kana, :given_name_kana, presence: true, format: {with: KATAKANA_REGEXP, allow_blank: true}
+end
+```
+
+<br>
+
+### 入社日・退職日のバリデーション
+
+- Date 型のバリデーションを提供する gem date_validator を使用する
+- バリデーション内容
+  - 入社日は 2020/01/01 以降かつ本日から１年以内．空値を禁止する
+  - 退職日は入社日以降かつ本日から１年以内．空値を許容する
+- `date` オプションで以下のキーを指定する
+  - `after` : 指定された日付より後．その日付は含まない
+  - `after_or_equal_to` : 指定された日付より後．その日付を含む
+  - `before` : 指定された日付より前．その日付は含まない
+  - `before_or_equal_to` : 指定された日付より前．その日付を含む
+  - `allow_blank` : 空値を許可するかどうか
+- `before: -> (_obj) {1.year.from_now.to_date}` で動的に日付を指定する
+  - `-> (_obj)`
+    - 名無し関数 Proc オブジェクトを作成する
+    - 接頭辞 `_` が付いた引数は関数内で使用されない
+  - `before: 1.year.from_now.to_date` と書いた場合
+    - production モードでの起動時に１回だけクラスが読み込まれる
+    - その起動時を基準とした１年後の日付に固定されてしまう
+
+```ruby
+class StaffMember < ApplicationRecord
+  # ...
++ validates :start_date, presence: true, date: {
++   after_or_equal_to: Time.zone.local(2020, 1, 1),
++   before: -> (_obj) {1.year.from_now.to_date},
++   allow_blank: true
++ }
++ validates :end_date, date: {
++  after: :start_date,
++   before: -> (_obj) {1.year.from_now.to_date},
++   allow_blank: true
++ }
+end
+```
+
+<br>
+
+### メールアドレスの正規化
+
+- `nkf` メソッドのオプションは[氏名・フリガナの正規化](#氏名フリガナの正規化)と同様
+- `downcase` することで email アドレスを小文字化している
+  - 通常のメールアドレスは大文字・小文字を区別しない
+  - PostgreSQL は区別するため大文字入力を正規化する
+
+```ruby
+module StringNormalizer
+  # ...
++ def normalize_as_email(text)
++   NKF.nkf('-WwZ1', text).strip.downcase if text
++ end
+end
+```
+
+```ruby
+class StaffMember < ApplicationRecord
+  # ...
+  before_validation do
++   self.email = normalize_as_email(email)
+  end
+end
+```
+
+<br>
+
+### メールアドレスのバリデーション
+
+- gem valid_email2 を使ってバリデーションする
+- `uniqueness: {case_sensitive: false}`
+  - デフォルトでは大文字・小文字を区別して unique とする
+  - 小文字に統一して unique と見なしたいので大文字を区別しない
+
+```ruby
+class StaffMember < ApplicationRecord
+  # ...
++ validates :email, presence: true, 'valid_email_2/email': true, uniqueness: {case_sensitive: false}
 end
 ```
 
