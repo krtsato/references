@@ -140,7 +140,7 @@ end
       - eq
       - be
       - be_xxx
-      - be_truthy / be_falsey
+      - be_truthy / be_falsey / be_valid
       - change + from / to / by
       - 配列 + include
       - raise_error

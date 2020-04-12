@@ -1596,10 +1596,11 @@ module Admin
     def index
       if params[:staff_member_id]
         @staff_member = StaffMember.find(params[:staff_member_id])
-        @events = @staff_member.events.order(occurred_at: :desc)
+        @events = @staff_member
       else
-        @events = StaffEvent.order(occurred_at: :desc)
+        @events = StaffEvent
       end
+      @events = @events.order(occurred_at: :desc)
     end
   end
 end
@@ -1631,6 +1632,7 @@ ja:
   - 引数に指定された整数をページ番号と見なす
   - 引数が nil の場合は `page(1)` となる
 - view ファイルに paginate の処理を追記する
+- N + 1 問題への対処は[後述](#staffevent-による-staffmember-取得時の-n--1-問題)
 
 ```ruby
 module Admin
@@ -1639,7 +1641,7 @@ module Admin
       if params[:staff_member_id]
         # ...
       end
-+     @events = @events.page(params[:page])
++     @events = @events.order(occurred_at: :desc).page(params[:page])
     end
   end
 end
@@ -1649,13 +1651,149 @@ end
 
 #### kaminari のカスタマイズ
 
+- １ページ目を表示するとき「先頭」「前」のクリック不可リンクを表示させる
+- 最終ページを表示するとき「次」「末尾」のクリック不可リンクを表示させる
+- views/kaminari/_paginator.html.erb を編集
+  - ページネーションリンクの列配置を決定するファイル
+  - `unless` の条件を取り除く
+
+```ruby
+# ...
+- <%= first_page_tag unless current_page.first? %>
++ <%= first_page_tag %>
+- <%= prev_page_tag unless current_page.first? %>
++ <%= prev_page_tag %>
+# ...
+- <%= next_page_tag unless current_page.last? %>
++ <%= next_page_tag %>
+- <%= last_page_tag unless current_page.last? %>
++ <%= last_page_tag %>
+# ...
+```
+
+- リンクを１つずつカスタマイズする
+  - views/kaminari/_first_page.html.erb
+  - `link_to_unless` : hoge
+    - 第１引数 : リンク表示の条件式
+    - 第２引数
+      - リンクの文字列
+      - 国際化に関するヘルパーメソッド `translate` のエイリアス `t` を使う
+      - [前項](#ページネーション)の YAML ファイルを参照する
+    - 第３引数 : リンク先の URL．先頭ページの URL を返すヘルパーメソッド `url` を使う
+    - オプション `remote: remote` : Ajax でリクエストするかどうか
+  - ブロック表記 `link_to_unless(...) do |name| ... end`
+    - 条件式が偽のとき，ブロック戻り値をリンク文字列とする
+    - ブロック変数 `name` には第２引数が渡される
+  - _last_page.html.erb・_prev.html.erb・_next_page.html.erb も同様
+
+```ruby
+<span class="first">
+- <%= link_to_unless current_page.first?, t('views.pagination.first').html_safe, url, remote: remote %>
++ <%=
++   link_to_unless(current_page.first?, t('views.pagination.first').html_safe, url) do |name|
++     content_tag(:span, name, class: 'disabled')
++   end
++ %>
+</span>
+```
+
 <br>
 
 ### StaffEvent による StaffMember 取得時の N + 1 問題
 
+- N + 1 問題によって不要なクエリが発行される
+  - 表示する StaffEvent レコードを一括取得する
+  - StaffEvent に紐付いた StaffMember レコードを一つずつ取得する
+- staff_member_id をまとめて１つのクエリを発行する
+  - `includes` メソッドの引数に[関連付けの名前](#staffeventstaffmember-の関連付け)を与える
+  - クエリの回数は２回に減る
+
+```ruby
+module Admin
+  class StaffEventsController < Base
+    def index
+      # ...
+-     @events = @events.order(occurred_at: :desc).page(params[:page])
++     @events = @events.order(occurred_at: :desc).includes(:member).page(params[:page])
+    end
+  end
+end
+```
+
 <br>
 
 ## DB 格納前の正規化とバリデーションの実装
+
+- 正規化 : 規則に従うように情報を変換する
+  - models/concerns/ 配下に切り出す
+  - Ruby 標準ライブラリ nkf を使う
+  - models/ 配下のファイルで読み込む
+  - `before_validation do ... end` で正規化する
+- バリデーション : 規則に従っているか検証する
+
+<br>
+
+### 氏名・フリガナの正規化
+
+- models/concerns/string_normalizer.rb に正規化関数を作成
+- `nkf` メソッドのオプション
+  - `-W` : UTF-8 で入力を受け付ける
+  - `-w` : UTF-8 で出力する
+  - `-Z1` : 全角の英数字・スペース・記号を半角にする
+  - `--katakana` : ひらがなをカタカナにする
+- `strip` : 文字列の先頭・末尾の空文字を削除するメソッド
+
+```ruby
+require 'nkf'
+
+module StringNormalizer
+  extend ActiveSupport::Concern
+
+  def normalize_as_name(text)
+    NKF.nkf('-WwZ1', text).strip if text
+  end
+
+  def normalize_as_furigana(text)
+    NKF.nkf('-WwZ1 --katakana', text).strip if text
+  end
+end
+```
+
+```ruby
+class StaffMember < ApplicationRecord
++ include StringNormalizer
+  # ...
++ before_validation do
++   self.family_name = normalize_as_name(family_name)
++   self.given_name = normalize_as_name(given_name)
++   self.family_name_kana = normalize_as_furigana(family_name_kana)
++   self.given_name_kana = normalize_as_furigana(given_name_kana)
++ end
+end
+```
+
+<br>
+
+### 氏名・フリガナのバリデーション
+
+- `presence: true` : 値の入力を必須とする
+- カタカナの正規表現
+  - `\p{katakana\}` : 任意のカタカナ１文字にマッチする
+  - `\u{30fc\}` : 長音符１文字にマッチする
+- 詳細なフォーマットを定める `format` バリデーション
+  - `with: 正規表現` : ここでカタカナを指定する
+  - `allow_blank: true` : 値が空のときバリデーションしない
+    - エラーメッセージの重複を回避するため
+    - false のとき「email が入力されていない」「email が不正な値です」のようになる
+
+```ruby
+class StaffMember < ApplicationRecord
+  # ..,
++ KATAKANA_REGEXP = /\A[\p{katakana}\u{30fc}]+\z/.freeze
++ validates :family_name, :given_name, presence: true
++ validates :family_name_kana, :given_name_kana, presence: true, format: {with: KATAKANA_REGEXP, allow_blank: true}
+end
+```
 
 <br>
 
@@ -1697,4 +1835,5 @@ end
 [7 Patterns to Refactor Fat ActiveRecord Models](https://codeclimate.com/blog/7-ways-to-decompose-fat-activerecord-models/)  
 [Ruby と Rails における Time, Date, DateTime, TimeWithZone の違い](https://qiita.com/jnchito/items/cae89ee43c30f5d6fa2c#activesupporttimewithzone%E3%82%AF%E3%83%A9%E3%82%B9)  
 [Active Record の関連付け](https://railsguides.jp/association_basics.html)  
+[【初心者】Railsのvalidatesのpresenceでエラーメッセージが重複するのを防ぐ方法](https://qiita.com/lasershow/items/0229855720aaf2be5fc8)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
