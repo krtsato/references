@@ -74,6 +74,12 @@ Rails のコードを書きながらこちらも編集していきます．
     - [kaminari のカスタマイズ](#kaminari-のカスタマイズ)
   - [StaffEvent による StaffMember 取得時の N + 1 問題](#staffevent-による-staffmember-取得時の-n--1-問題)
 - [DB 格納前の正規化とバリデーションの実装](#db-格納前の正規化とバリデーションの実装)
+  - [氏名・フリガナの正規化](#氏名フリガナの正規化)
+  - [氏名・フリガナのバリデーション](#氏名フリガナのバリデーション)
+  - [入社日・退職日のバリデーション](#入社日退職日のバリデーション)
+  - [メールアドレスの正規化](#メールアドレスの正規化)
+  - [メールアドレスのバリデーション](#メールアドレスのバリデーション)
+- [Staff によるパスワードの変更](#staff-によるパスワードの変更)
 - [プレゼンタによるフロントエンドのリファクタ](#プレゼンタによるフロントエンドのリファクタ)
 - [Customer アカウントの CRUD 実装](#customer-アカウントの-crud-実装)
 - [Capybara およびバリデーションによる Customer アカウントの CRUD リファクタ](#capybara-およびバリデーションによる-customer-アカウントの-crud-リファクタ)
@@ -1031,7 +1037,7 @@ end
   - e.g. update に失敗して編集フォームが再表示される場合
   - `http://rrrp.example.com/admin/staff_members/123` のような URL が提供される
   - このページはお気に入り登録・リンクのコピペによって再表示され得る
-  - show アクションにアクセスさせて，即座に edit の view へリダイレクトする
+  - show アクションにアクセスさせて，即座に edit アクションへリダイレクトする
 - `redirect_to [:edit, :admin, staff_member]`
   - 引数が配列の場合 redirect_to は配列要素からルーティング名を推定する
   - ルーティング名 : edit_admin_staff_memnber
@@ -1042,7 +1048,7 @@ module Admin
   class StaffMembersController < Base
 +   def show
 +     staff_member = StaffMember.find(params[:id])
-+     redirect_to[:edit, :admin, staff_member]
++     redirect_to [:edit, :admin, staff_member]
 +   end
   end
 end
@@ -1086,7 +1092,7 @@ end
 
 - レコードを取得して admin/staff_members/edit.html.erb を表示する
 - 編集フォームは新規作成フォームと共通で利用する
-- パスワードの変更は現時点でスキップする
+- パスワードの変更は分離して[後述](#staff-によるパスワードの変更)
   - `f.object.new_record?` : DB に未保存ならばフォームを表示
   - 表示のためにハッシュをデコードする必要がある
   - 職員アカウントを更新する度にパスワードをデコード・ハッシュ化するのは実用的でない
@@ -1647,7 +1653,7 @@ end
 
 - １ページ目を表示するとき「先頭」「前」のクリック不可リンクを表示させる
 - 最終ページを表示するとき「次」「末尾」のクリック不可リンクを表示させる
-- views/kaminari/_paginator.html.erb を編集
+- views/kaminari/\_paginator.html.erb を編集
   - ページネーションリンクの列配置を決定するファイル
   - `unless` の条件を取り除く
 
@@ -1666,7 +1672,7 @@ end
 ```
 
 - リンクを１つずつカスタマイズする
-  - views/kaminari/_first_page.html.erb
+  - views/kaminari/\_first_page.html.erb
   - `link_to_unless` : hoge
     - 第１引数 : リンク表示の条件式
     - 第２引数
@@ -1678,7 +1684,7 @@ end
   - ブロック表記 `link_to_unless(...) do |name| ... end`
     - 条件式が偽のとき，ブロック戻り値をリンク文字列とする
     - ブロック変数 `name` には第２引数が渡される
-  - _last_page.html.erb・_prev.html.erb・_next_page.html.erb も同様
+  - \_last_page.html.erb・\_prev.html.erb・\_next_page.html.erb も同様
 
 ```ruby
 <span class="first">
@@ -1721,7 +1727,7 @@ end
 - 正規化 : 規則に従うように情報を変換する
   - models/concerns/ 配下に切り出す
   - Ruby 標準ライブラリ nkf を使う
-  - models/ 配下のファイルで読み込む
+  - models/ 配下のファイル  で読み込む
   - `before_validation do ... end` で正規化する
 - バリデーション : 規則に従っているか検証する
 
@@ -1874,6 +1880,121 @@ end
 
 <br>
 
+## Staff によるパスワードの変更
+
+### password を操作対象としたルーティングの設定
+
+- 単数リソースによるルーティング
+- アカウント閲覧ページにパスワード変更ページへのリンク `:edit_staff_password` を設置する
+- `bundle exec rails g controller staff/passwords` して controller を作成する
+
+```ruby
+constraints host: config[:staff][:host] do
+  namespace :staff, path: config[:staff][:path] do
+    # ...
++   resource :password, only: [:show, :edit, :update]
+  end
+end
+```
+
+<br>
+
+### passwords show アクション
+
+- 即座に edit アクションへリダイレクトさせる
+- 理由は [staff_mambers show アクション](#staff_members-show-アクション)と同様
+
+```ruby
+module Staff
+  class PasswordsController < Base
+    def show
+      redirect_to :edit_staff_password
+    end
+  end
+end
+```
+
+<br>
+
+### passwords edit アクション
+
+- フォームフォブジェクト app/forms/staff/change_password_form.rb を作成する
+- `include ActiveModel::Model` と `attr_accessor` の効能は[ログインフォームの作成](#ログインフォームの作成)を参照
+- バリデーション
+  - `validates :hoge, ... confirmation: true` : `:hoge` と `:hoge_confirmation` が一致するとき検証成功
+  - `validate do ... end` : 組み込みの `presence` や `form` 以外で検証する場合に使用する
+  - `errors` : Error オブジェクトを返すメソッド．詳しくは後述
+- `save` メソッドの定義
+  - `include ActiveModel::Model` することで非 ActiveRecord モデルとなっている
+  - インスタンスがデフォルトで save メソッドを持たないため定義する
+
+```ruby
+module Staff
+  class ChangePasswordForm
+    include ActiveModel::Model
+    attr_accessor :object, :current_password, :new_password, :new_password_confirmation
+  
+    validates :new_password, presence: true, confirmation: true
+
+    validate do
+      unless Staff::Authenticator.new(object).authenticate(current_password)
+        errors.add(:current_password, :wrong)
+      end
+    end
+
+    def save
+      return unless valid?
+
+      object.password = new_password
+      object.save!
+    end
+  end
+end
+```
+
+- staff/passwords_controller.rb に追記する
+  - `object` 属性に `current_staff_member` を渡すことで，その後のバリデーション・保存ができる
+  - フォームオブジェクトをインスタンス変数に格納して view へ渡す
+- view ファイルを作成する
+
+```ruby
+module Staff
+  class PasswordsController < Base
+    # ...
++   def edit
++     @change_password_form = ChangePasswordForm.new(object: current_staff_member)
++   end
+  end
+end
+```
+
+<br>
+
+### passwords update アクション
+
+- 自作した `save` メソッドのため，属性値 `object` にパスワードを変更する Staff を格納する
+- passwords_controller.rb という切り口から StaffMember モデルの属性値を更新する
+
+```ruby
+module Staff
+  class PasswordsController < Base
++   def update
++     @change_password_form = ChangePasswordForm.new(staff_member_params)
++     @change_password_form.object = current_staff_member
++     if @change_password_form.save
++       flash.now.notice = 'パスワードを変更しました'
++       redirect_to :staff_account
++     else
++       flash.now.alert = '入力に誤りがあります'
++       render action: 'edit'
++     end
++   end
+  end
+end
+```
+
+<br>
+
 ## プレゼンタによるフロントエンドのリファクタ
 
 <br>
@@ -1912,5 +2033,5 @@ end
 [7 Patterns to Refactor Fat ActiveRecord Models](https://codeclimate.com/blog/7-ways-to-decompose-fat-activerecord-models/)  
 [Ruby と Rails における Time, Date, DateTime, TimeWithZone の違い](https://qiita.com/jnchito/items/cae89ee43c30f5d6fa2c#activesupporttimewithzone%E3%82%AF%E3%83%A9%E3%82%B9)  
 [Active Record の関連付け](https://railsguides.jp/association_basics.html)  
-[【初心者】Railsのvalidatesのpresenceでエラーメッセージが重複するのを防ぐ方法](https://qiita.com/lasershow/items/0229855720aaf2be5fc8)  
+[【初心者】Rails の validates の presence でエラーメッセージが重複するのを防ぐ方法](https://qiita.com/lasershow/items/0229855720aaf2be5fc8)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
