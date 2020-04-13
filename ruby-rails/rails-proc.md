@@ -80,6 +80,10 @@ Rails のコードを書きながらこちらも編集していきます．
   - [メールアドレスの正規化](#メールアドレスの正規化)
   - [メールアドレスのバリデーション](#メールアドレスのバリデーション)
 - [Staff によるパスワードの変更](#staff-によるパスワードの変更)
+  - [password を操作対象としたルーティングの設定](#password-を操作対象としたルーティングの設定)
+  - [passwords show アクション](#passwords-show-アクション)
+  - [passwords edit アクション](#passwords-edit-アクション)
+  - [passwords update アクション](#passwords-update-アクション)
 - [プレゼンタによるフロントエンドのリファクタ](#プレゼンタによるフロントエンドのリファクタ)
 - [Customer アカウントの CRUD 実装](#customer-アカウントの-crud-実装)
 - [Capybara およびバリデーションによる Customer アカウントの CRUD リファクタ](#capybara-およびバリデーションによる-customer-アカウントの-crud-リファクタ)
@@ -1933,7 +1937,7 @@ module Staff
   class ChangePasswordForm
     include ActiveModel::Model
     attr_accessor :object, :current_password, :new_password, :new_password_confirmation
-  
+
     validates :new_password, presence: true, confirmation: true
 
     validate do
