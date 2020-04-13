@@ -14,4 +14,4 @@
   - Redux の設計
 - [ruby-rails](https://github.com/krtsato/references/tree/master/ruby-rails)
   - Rails の作業ログ・設計
-  - RSpec のメソッド
+  - テストの書き方
