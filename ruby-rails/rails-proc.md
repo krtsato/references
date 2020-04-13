@@ -1771,8 +1771,9 @@ end
 ### 氏名・フリガナのバリデーション
 
 - `presence: true` : 値の入力を必須とする
-- カタカナの正規表現
-  - `\p{katakana\}` : 任意のカタカナ１文字にマッチする
+- 正規表現
+  - `\p{han}` : 任意の漢字一文字にマッチする
+  - `\p{hiragana\}` : 任意のひらがな１文字にマッチする
   - `\u{30fc\}` : 長音符１文字にマッチする
 - 詳細なフォーマットを定める `format` バリデーション
   - `with: 正規表現` : ここでカタカナを指定する
@@ -1783,8 +1784,9 @@ end
 ```ruby
 class StaffMember < ApplicationRecord
   # ..,
+  HUMAN_NAME_REGEXP = /\A[\p{han}\p{hiragana}\p{katakana}\u{30fc}A-Za-z]+\z/.freeze
 + KATAKANA_REGEXP = /\A[\p{katakana}\u{30fc}]+\z/.freeze
-+ validates :family_name, :given_name, presence: true
++ validates :family_name, :given_name, presence: true, format: {with: HUMAN_NAME_REGEXP, allow_blank: true}
 + validates :family_name_kana, :given_name_kana, presence: true, format: {with: KATAKANA_REGEXP, allow_blank: true}
 end
 ```
