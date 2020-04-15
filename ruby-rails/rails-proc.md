@@ -2071,7 +2071,9 @@ class FormPresenter
   include HtmlBuilder
   attr_reader :form_builder, :view_context
 
-  delegate :label, :text_field, :date_field, :password_field, :check_box, :radio_button, :text_area, :object, to: :form_builder
+  delegate \
+    :label, :text_field, :date_field, :password_field, :check_box, :radio_button, :text_area, :object,
+    to: :form_builder
 
   def initialize(form_builder, view_context)
     @form_builder = form_builder
@@ -2217,8 +2219,32 @@ end
 
 ### StaffMember のフォームプレゼンタ
 
-```ruby
+- 変更前の view : `f.label :family_name, '氏名', class: 'required'`
+  - `f` : フォームビルダのエイリアス
+- 変更後の view : `p.full_name_block(:family_name, :given_name, '氏名', required: true)`
+  - `p` : プレゼンタのエイリアス
+  - `required: true` オプション : `full_name_block` メソッドの `options[:required]` に渡される
+- StaffMemberFormPresenter クラス
+  - FormPresenter での委譲 `delegate ... , to: :form_builder` を継承している
+  - StaffMemberFormPresenter クラスでは `f.` が省略できる
 
+```ruby
+# class: で指定した属性値は通常どおりスタイリングに利用できる
+class StaffMemberFormPresenter < FormPresenter
+  def full_name_block(f_name, g_name, label_text, options = {})
+    markup(:div, class: 'input-block') do |m|
+      m << label(f_name, label_text, class: options[:required] ? 'required' : nil)
+      m << text_field(f_name, options)
+      m << text_field(g_name, options)
+    end
+  end
+end
+```
+
+```erb
+<% p = StaffMemberFormPresenter.new(f, self) %>
+<%# ... %>
+<%= p.full_name_block(:family_name, :given_name, '氏名', required: true) %>
 ```
 
 <br>
