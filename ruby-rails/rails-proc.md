@@ -823,7 +823,7 @@ end
 
 ```erb
 <header>
-<!-- ... -->
+  <%# ... %>
 + `<%= content_tag(:span, flash.notice, class: 'notice') if flash.notice %>`
 + `<%= content_tag(:span, flash.alert, class: 'alert') if flash.alert %>`
 </header>
@@ -1079,7 +1079,7 @@ end
 ```erb
 <%= form_with model: @staff_member, url: [:admin, @staff_member] do |f| %>
   <%= render 'form', f: f %>
-  <!-- ... -->
+  <%# ... %>
 <% end %>
 ```
 
@@ -2001,6 +2001,139 @@ end
 
 ## プレゼンタによるフロントエンドのリファクタ
 
+- view ファイルの可読性を高めるためコードを切り出す
+- view で使うメソッドをモジュール内で定義する
+- 状況に応じて特別な手続きが必要になる
+  - view のヘルパーメソッドを使えるようにする
+  - HTML ビルダを用意する : lib/html_builder.rb
+    - HTML 解析・生成ができる gem nokogiri を使う
+  - モデルプレゼンタを用意する : app/presenters/model_presenter.rb
+    - `attr_reader` : 読み出し専用にする
+    - `delegate`
+      - 第１引数 : 委譲元のメソッド
+      - オプション `to` : 指定されたメソッドが返す，委譲先のオブジェクト
+    - `view_context` : すべてのヘルパーメソッドを持っているオブジェクト
+  - フォームプレゼンタを用意する : app/preseters/form_presenter.rb
+- ApplicationHelper モジュールに定義しない
+  - グローバルに定義されて名前衝突が起きるから
+- モデルクラスのインスタンスメソッドに定義しない
+  - モデルが肥大化するから
+  - 本来の責務 : 正規化・バリデーション・属性値の確認
+
+```ruby
+module HtmlBuilder
+  def markup(tag_name = nil, options = {})
+    root = Nokogiri::HTML::DocumentFragment.parse('')
+
+    Nokogiri::HTML::Builder.with(root) do |doc|
+      if tag_name
+        doc.method_missing(tag_name, options) do
+          yield(doc)
+        end
+      else
+        yield(doc)
+      end
+    end
+
+    # 許可するタグ・属性を適宜追加する
+    sanitize(root.to_html, tags: %w[a table th tr td])
+  end
+end
+```
+
+```ruby
+require 'html_builder'
+
+class ModelPresenter
+  include HtmlBuilder
+  attr_reader :object, :view_context
+
+  delegate :sanitize, :link_to, to: :view_context
+
+  def initialize(object, view_context)
+    @object = object
+    @view_context = view_context
+  end
+end
+```
+
+```ruby
+require 'html_builder'
+
+class FormPresenter
+  include HtmlBuilder
+  attr_reader :form_builder, :view_context
+
+  delegate :label, :text_field, :date_field, :password_field, :check_box, :radio_button, :text_area, :object, to: :form_builder
+
+  def initialize(form_builder, view_context)
+    @form_builder = form_builder
+    @view_context = view_context
+  end
+end
+```
+
+### StaffMember のモデルプレゼンタ
+
+- `object` への委譲
+  - 親クラスの `initialize` で StaffMember オブジェクトが渡される
+  - `object.family_name` が `family_name` に短縮できる
+- `sanitize`
+  - 第１引数 : HTML ドキュメント
+  - `tags` オプション : 許可する HTML タグ名
+  - `attributes` オプション : 許可する HTML 属性名
+  - `scrubber` オプション : より自在で強力なタグ・属性操作を行う
+  - `raw` および `html_safe` で HTML を表示すると rubocop に注意される
+- view ファイルからメソッドを呼ぶ
+  - 疑似変数 `self` : view ファイルで呼ぶと view_context を参照する
+
+```ruby
+class StaffMemberPresenter < ModelPresenter
+  delegate :suspended?, :family_name, :given_name, :family_name_kana, :given_name_kana, to: :object
+
+  def full_name
+    family_name + ' ' + given_name
+  end
+
+  def full_name_kana
+    family_name_kana + ' ' + given_name_kana
+  end
+
+  # 職員の停止フラグの On/Off を表現する記号を返す
+  def suspended_mark
+    suspended? ? sanitize('&#x2611;') : sanitize('&#x2610;')
+  end
+end
+```
+
+```erb
+<table>
+  <% @staff_members.each do |m| %>
+    <% p = StaffMemberPresenter.new(m, self) %>
+    <tr>
+      <td><%= p.full_name %></td>
+      <%# ... %>
+    </tr>
+  <% end %>
+</table>
+```
+
+<br>
+
+### gg
+
+```ruby
+
+```
+
+<br>
+
+### ggg
+
+```ruby
+
+```
+
 <br>
 
 ## Customer アカウントの CRUD 実装
@@ -2038,4 +2171,6 @@ end
 [Ruby と Rails における Time, Date, DateTime, TimeWithZone の違い](https://qiita.com/jnchito/items/cae89ee43c30f5d6fa2c#activesupporttimewithzone%E3%82%AF%E3%83%A9%E3%82%B9)  
 [Active Record の関連付け](https://railsguides.jp/association_basics.html)  
 [【初心者】Rails の validates の presence でエラーメッセージが重複するのを防ぐ方法](https://qiita.com/lasershow/items/0229855720aaf2be5fc8)  
+[RailsビューのHTMLエスケープは#link_toなどのヘルパーメソッドで解除されることがある](https://techracho.bpsinc.jp/hachi8833/2016_08_31/25326)  
+[Rails で raw HTML を sanitize する](https://fiveteesixone.lackland.io/2015/01/25/sanitize-raw-html-in-rails/)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
