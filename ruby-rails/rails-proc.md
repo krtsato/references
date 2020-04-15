@@ -85,6 +85,11 @@ Rails のコードを書きながらこちらも編集していきます．
   - [passwords edit アクション](#passwords-edit-アクション)
   - [passwords update アクション](#passwords-update-アクション)
 - [プレゼンタによるフロントエンドのリファクタ](#プレゼンタによるフロントエンドのリファクタ)
+  - [プレゼンタ利用の準備](#プレゼンタ利用の準備)
+  - [HtmlBuilder の使い方](#htmlbuilder-の使い方)
+  - [StaffMember のモデルプレゼンタ](#staffmember-のモデルプレゼンタ)
+  - [StaffEvent のモデルプレゼンタ](#staffevent-のモデルプレゼンタ)
+  - [ggg](#ggg)
 - [Customer アカウントの CRUD 実装](#customer-アカウントの-crud-実装)
 - [Capybara およびバリデーションによる Customer アカウントの CRUD リファクタ](#capybara-およびバリデーションによる-customer-アカウントの-crud-リファクタ)
 - [ActiveSupport::Concern による機能共通化を目的としたリファクタ](#activesupportconcern-による機能共通化を目的としたリファクタ)
@@ -2001,6 +2006,8 @@ end
 
 ## プレゼンタによるフロントエンドのリファクタ
 
+### プレゼンタ利用の準備
+
 - view ファイルの可読性を高めるためコードを切り出す
 - view で使うメソッドをモジュール内で定義する
 - 状況に応じて特別な手続きが必要になる
@@ -2073,6 +2080,52 @@ class FormPresenter
 end
 ```
 
+<br>
+
+### HtmlBuilder の使い方
+
+- `markup` メソッドは引数なし，または引数にタグ名を指定して呼び出す
+- いずれの場合でもブロックを伴う
+
+```ruby
+# 引数なし・ネストなし
+# <span class='mark'>*</span>印の付いた項目は入力必須です
+markup do |m|
+  m.span '*', class: 'mark'
+  m.text '印の付いた項目は入力必須です'
+end
+```
+
+```ruby
+# 引数なし・ネストあり
+# <div class="notes"><span> ... </span></div>
+markup do |m|
+  m.div(class: 'notes') do
+    m.span '*', class: 'mark'
+    m.text '印の付いた項目は入力必須です'
+  end
+end
+```
+
+```ruby
+# 引数あり・ネストあり
+# <div class="notes"><span> ... </span></div>
+markup(:div, class: 'notes') do |m|
+  m.span '*', class: 'mark'
+  m.text '印の付いた項目は入力必須です'
+end
+```
+
+```ruby
+# 生成済みの HTML コードを加える
+markup(:div, class: 'notes') do |m|
+  m << "<span class='mark'></span>"
+  m.text '印の付いた項目は入力必須です'
+end
+```
+
+<br>
+
 ### StaffMember のモデルプレゼンタ
 
 - `object` への委譲
@@ -2084,7 +2137,7 @@ end
   - `attributes` オプション : 許可する HTML 属性名
   - `scrubber` オプション : より自在で強力なタグ・属性操作を行う
   - `raw` および `html_safe` で HTML を表示すると rubocop に注意される
-- view ファイルからメソッドを呼ぶ
+- views/admin/staff_members/index.html.erb からメソッドを呼ぶ
   - 疑似変数 `self` : view ファイルで呼ぶと view_context を参照する
 
 ```ruby
@@ -2120,15 +2173,49 @@ end
 
 <br>
 
-### gg
+### StaffEvent のモデルプレゼンタ
+
+- 継承した `markup` メソッドで HTML ドキュメントをビルドする
+  - `delegate :member, :description, :occurred_at, to: :object`
+    - object には event が入る
+    - `event.member.family_name` を `member.family_name` と書ける
+  - `instance_variable_get` : レシーバが持っているインスタンス変数の値を取得するメソッド
+- views/admin/staff_evens/index.html.erb から `table_row` メソッドを呼ぶ
+- プレゼンテータによって代替された，不要な部分テンプレートは削除する
 
 ```ruby
+class StaffEventPresenter < ModelPresenter
+  delegate :member, :description, :occurred_at, to: :object
 
+  def table_row
+    markup(:tr) do |m|
+      unless view_context.instance_variable_get(:@staff_member)
+        m.td do
+          m << link_to(member.family_name + member.given_name, [:admin, member, :staff_events])
+        end
+      end
+      m.td description
+      m.td(class: 'date') do
+        m.text occurred_at.strftime('%Y/%m/%d %H:%M:%S')
+      end
+    end
+  end
+end
+```
+
+```erb
+<table>
+  <%# ... %>
+  <% @events.each do |event| %>
+    <%= StaffEventPresenter.new(event, self).table_row %>
+  <% end %>
+  <%# ... %>
+</table>
 ```
 
 <br>
 
-### ggg
+### StaffMember のフォームプレゼンタ
 
 ```ruby
 
@@ -2171,6 +2258,6 @@ end
 [Ruby と Rails における Time, Date, DateTime, TimeWithZone の違い](https://qiita.com/jnchito/items/cae89ee43c30f5d6fa2c#activesupporttimewithzone%E3%82%AF%E3%83%A9%E3%82%B9)  
 [Active Record の関連付け](https://railsguides.jp/association_basics.html)  
 [【初心者】Rails の validates の presence でエラーメッセージが重複するのを防ぐ方法](https://qiita.com/lasershow/items/0229855720aaf2be5fc8)  
-[RailsビューのHTMLエスケープは#link_toなどのヘルパーメソッドで解除されることがある](https://techracho.bpsinc.jp/hachi8833/2016_08_31/25326)  
+[Rails ビューの HTML エスケープは#link_to などのヘルパーメソッドで解除されることがある](https://techracho.bpsinc.jp/hachi8833/2016_08_31/25326)  
 [Rails で raw HTML を sanitize する](https://fiveteesixone.lackland.io/2015/01/25/sanitize-raw-html-in-rails/)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
