@@ -89,7 +89,10 @@ Rails のコードを書きながらこちらも編集していきます．
   - [HtmlBuilder の使い方](#htmlbuilder-の使い方)
   - [StaffMember のモデルプレゼンタ](#staffmember-のモデルプレゼンタ)
   - [StaffEvent のモデルプレゼンタ](#staffevent-のモデルプレゼンタ)
-  - [ggg](#ggg)
+  - [StaffMember のフォームプレゼンタ](#staffmember-のフォームプレゼンタ)
+  - [プレゼンタ内での共通化](#プレゼンタ内での共通化)
+  - [プレゼンタ呼び出し時の ERB テンプレート](#プレゼンタ呼び出し時の-erb-テンプレート)
+  - [フォームにおけるエラーメッセージの表示](#フォームにおけるエラーメッセージの表示)
 - [Customer アカウントの CRUD 実装](#customer-アカウントの-crud-実装)
 - [Capybara およびバリデーションによる Customer アカウントの CRUD リファクタ](#capybara-およびバリデーションによる-customer-アカウントの-crud-リファクタ)
 - [ActiveSupport::Concern による機能共通化を目的としたリファクタ](#activesupportconcern-による機能共通化を目的としたリファクタ)
@@ -2042,8 +2045,7 @@ module HtmlBuilder
       end
     end
 
-    # 許可するタグ・属性を適宜追加する
-    sanitize(root.to_html, tags: %w[a table th tr td])
+    root.to_html.html_safe # rubocop:disable Rails/OutputSafety
   end
 end
 ```
@@ -2246,6 +2248,139 @@ end
 <%# ... %>
 <%= p.full_name_block(:family_name, :given_name, '氏名', required: true) %>
 ```
+
+<br>
+
+### プレゼンタ内での共通化
+
+- フォーム入力のために汎用的なプレゼンタを定義する
+  - app/presenters/form_presenter.rb に追記する
+- メソッドの共通部分を切り出す
+- private メソッドは継承後も使い回せる
+
+```ruby
+class FormPresenter
+  # 入力必須
++ def notes
++   markup(:div, class: 'notes') do |m|
++     m.span '*', class: 'mark'
++     m.text '印の付いた項目は入力必須です。'
++   end
++ end
+
+  # 文字入力
++ def text_field_block(input, label_text, options = {})
++   markup(:div, class: 'input-block') do |m|
++     m << decorated_label(input, label_text, options)
++     m << text_field(input, options)
++   end
++ end
+
+  # パスワード
++ def password_field_block(input, label_text, options = {})
++   markup(:div, class: 'input-block') do |m|
++     m << decorated_label(input, label_text, options)
++     m << password_field(input, options)
++   end
++ end
+
+  # 日付
++ def date_field_block(input, label_text, options = {})
++   markup(:div, class: 'input-block') do |m|
++     m << decorated_label(input, label_text, options)
++     m << date_field(input, options)
++   end
++ end
+
++ private
+
+  # メソッドの共通部分を切り出す
++ def decorated_label(input, label_text, options = {})
++   label(input, label_text, class: options[:required] ? 'required' : nil)
++ end
+end
+```
+
+- StaffMember 特有のフォームが必要な場合は継承後に定義する
+- app/presenters/staff_member_form_presenter.rb に追記する
+
+```ruby
+class StaffMemberFormPresenter < FormPresenter
+  # オーバーライド
++ def password_field_block(input, label_text, options = {})
++   if object.new_record? # 既存アカウントのパスワード編集は別ページ
++     super(input, label_text, options)
++   end
++ end
+
+  # 姓名
+  def full_name_block(f_name, g_name, label_text, options = {})
+    markup(:div, class: 'input-block') do |m|
+-     m << label(f_name, label_text, class: options[:required] ? 'required' : nil)
++     m << decorated_label(f_name, label_text, options) # 共通化関数を継承した
+      m << text_field(f_name, options)
+      m << text_field(g_name, options)
+    end
+  end
+
+  # アカウント停止
++ def suspended_check_box
++   markup(:div, class: 'check-boxes') do |m|
++     m << check_box(:suspended)
++     m << label(:suspended, 'アカウント停止')
++   end
++ end
+end
+```
+
+<br>
+
+### プレゼンタ呼び出し時の ERB テンプレート
+
+- new.html.erb や edit.html.erb から部分テンプレートを呼ぶ
+- 部分テンプレート内で `markup` メソッドを使う
+  - ヘルパーメソッドに登録する必要がある
+  - app/helpers/application_helper.rb に追記する
+- `with_options(required: true) do |q| ... end`
+  - 引数に指定されたオプションが繰り返し付与される
+  - ブロック内に書かれたメソッドの最後の引数がハッシュのとき `required: true` をマージする
+    - `{size: 32, required: true}` のように統合される
+
+```ruby
++ require 'html_builder'
+
+module ApplicationHelper
++ include HtmlBuilder
+  # ...
+end
+```
+
+```erb
+<%= form_with model: @staff_member, url: [:admin, @staff_member] do |f| %>
+  <%= render 'form', f: f %>
+  <%# ... %>
+<% end %>
+```
+
+```erb
+<%= markup do |m|
+  p = StaffMemberFormPresenter.new(f, self)
+  m << p.notes
+  p.with_options(required: true) do |q|
+    m << q.text_field_block(:email, 'メールアドレス', size: 32)
+    m << q.password_field_block(:password, 'パスワード', size: 32)
+    m << q.full_name_block(:family_name, :given_name, '氏名')
+    m << q.full_name_block(:family_nam_kanae, :given_name_kana, 'フリガナ')
+    m << q.date_field_block(:start_date, '入社日')
+    m << q.date_field_block(:end_date, '退職日', required: false)
+  end
+  m << p.suspended_check_box
+end %>
+```
+
+<br>
+
+### フォームにおけるエラーメッセージの表示
 
 <br>
 
