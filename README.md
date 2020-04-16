@@ -13,5 +13,5 @@
   - React の言語仕様
   - Redux の設計
 - [ruby-rails](https://github.com/krtsato/references/tree/master/ruby-rails)
-  - Rails の作業ログ / 設計
-  - RSpec のメソッド
+  - Rails の作業ログ・設計
+  - テストの書き方
