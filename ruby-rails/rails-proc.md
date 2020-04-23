@@ -92,12 +92,7 @@ Rails のコードを書きながらこちらも編集していきます．
   - [StaffMember のフォームプレゼンタ](#staffmember-のフォームプレゼンタ)
   - [プレゼンタ内での共通化](#プレゼンタ内での共通化)
   - [プレゼンタ呼び出し時の ERB テンプレート](#プレゼンタ呼び出し時の-erb-テンプレート)
-  - [フォームにおけるエラーメッセージの表示](#フォームにおけるエラーメッセージの表示)
-- [Customer アカウントの CRUD 実装](#customer-アカウントの-crud-実装)
-- [Capybara およびバリデーションによる Customer アカウントの CRUD リファクタ](#capybara-およびバリデーションによる-customer-アカウントの-crud-リファクタ)
-- [ActiveSupport::Concern による機能共通化を目的としたリファクタ](#activesupportconcern-による機能共通化を目的としたリファクタ)
-- [Customer アカウントにおける自宅住所と勤務先の任意入力の実装](#customer-アカウントにおける自宅住所と勤務先の任意入力の実装)
-- [Customer アカウントにおける電話番号の CRUD 実装](#customer-アカウントにおける電話番号の-crud-実装)
+- [その他](#その他)
 - [参考文献](#参考文献)
 
 ソースコード : [ruby-rails-rspec-prac](https://github.com/krtsato/ruby-rails-rspec-prac)
@@ -2380,27 +2375,14 @@ end %>
 
 <br>
 
-### フォームにおけるエラーメッセージの表示
+## その他
 
-<br>
-
-## Customer アカウントの CRUD 実装
-
-<br>
-
-## Capybara およびバリデーションによる Customer アカウントの CRUD リファクタ
-
-<br>
-
-## ActiveSupport::Concern による機能共通化を目的としたリファクタ
-
-<br>
-
-## Customer アカウントにおける自宅住所と勤務先の任意入力の実装
-
-<br>
-
-## Customer アカウントにおける電話番号の CRUD 実装
+- フォームにおけるエラーメッセージの表示
+- Customer アカウントの CRUD 実装
+- Capybara およびバリデーションによる Customer アカウントの CRUD リファクタ
+- ActiveSupport::Concern による機能共通化を目的としたリファクタ
+- Customer アカウントにおける自宅住所と勤務先の任意入力の実装
+- Customer アカウントにおける電話番号の CRUD 実装
 
 <br>
 
