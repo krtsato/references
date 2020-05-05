@@ -27,6 +27,7 @@ goenv は導入せず, グローバルで小規模に最新の Golang を動か�
 ```
 
 <br>
+
 .zshrc に PATH を通す
 
 ```zsh
@@ -53,14 +54,14 @@ IDE から拡張機能 [vscode-go](https://github.com/microsoft/vscode-go) を�
 <br>
 
 IDE から [golangci-lint](https://github.com/golangci/golangci) をインストールする．  
-デフォルトの Lint ツールを厳格化するために，golangci-lint を採用した．
+デフォルトの Lint ツールを厳格化するために採用する．
 
 ![golangci-lint](/images/golang/golangci-lint.png)
 
 <br>
 
 ターミナルから [gopls](https://github.com/golang/tools/blob/master/gopls/doc/user.md) をインストールする．  
-Go module の導入によって gopls が gocode, godef を代替する動きがあるため．  
+Go Modules の導入によって gopls が gocode, godef を代替する動きがあるため．  
 [gocode やめます(そして Language Server へ)](https://mattn.kaoriya.net/software/lang/go/20181217000056.htm)
 
 ```zsh
