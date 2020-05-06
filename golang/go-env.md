@@ -120,7 +120,7 @@ go get / go build / go test などを実行すると
 % git remote add origin https://github.com/ユーザ名/リポジトリ名.git
 
 # モジュール管理を初期化
-% go mod init github.com/ユーザ名/リポジトリ名
+% go mod init リポジトリ名 (= プロジェクトディレクトリ)
 
 # モジュールの追加
 ## Go のソースコード内に import 文を書く
