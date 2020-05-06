@@ -74,6 +74,12 @@ VSCode の settings.json は以下のように記述した．
 
 ```json
 {
+  "[go]": {
+    "editor.codeActionsOnSave": {
+      "//": "保存時に fmt パッケージを走らせる",
+      "source.organizeImports": true
+    }
+  },
   "//": "Linter 厳格化のため golangci-lint を採用",
   "go.lintTool": "golangci-lint",
 
