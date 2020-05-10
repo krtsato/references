@@ -638,4 +638,5 @@ func main() {
 ## 参考文献
 
 [JSON and Go](https://blog.golang.org/json)  
+[Golangのポインタ概要](https://bmf-tech.com/posts/Golang%E3%81%AE%E3%83%9D%E3%82%A4%E3%83%B3%E3%82%BF%E6%A6%82%E8%A6%81)  
 [GO のポインタを完全に理解する本](https://techbookfest.org/product/5039923363053568)
