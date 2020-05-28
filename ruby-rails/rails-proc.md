@@ -8,7 +8,6 @@ Rails のコードを書きながらこちらも編集していきます．
 企業が運営する顧客管理サービスを開発する．  
 ユーザは Admin・Staff・Customer を想定する．
 
-- [環境構築](#環境構築)
 - [トップページの作成](#トップページの作成)
   - [routes to root の定義](#routes-to-root-の定義)
   - [名前空間の controllers の作成](#名前空間の-controllers-の作成)
@@ -96,13 +95,6 @@ Rails のコードを書きながらこちらも編集していきます．
 - [参考文献](#参考文献)
 
 ソースコード : [ruby-rails-rspec-prac](https://github.com/krtsato/ruby-rails-rspec-prac)
-
-<br>
-
-## 環境構築
-
-- [ruby-rails-rspec-prac](https://github.com/krtsato/ruby-rails-rspec-prac) の Shell を適宜アレンジする
-- Rails API の構築情報は今後追加
 
 <br>
 
@@ -2403,4 +2395,6 @@ end %>
 [【初心者】Rails の validates の presence でエラーメッセージが重複するのを防ぐ方法](https://qiita.com/lasershow/items/0229855720aaf2be5fc8)  
 [Rails ビューの HTML エスケープは#link_to などのヘルパーメソッドで解除されることがある](https://techracho.bpsinc.jp/hachi8833/2016_08_31/25326)  
 [Rails で raw HTML を sanitize する](https://fiveteesixone.lackland.io/2015/01/25/sanitize-raw-html-in-rails/)  
+[EC2+ACM+ALB+お名前.comで設定をしてサブドメインでhttps接続できるようになるまでひととおり](https://owani.net/aws/ec2-acm-alb/768/)  
+[無料！かつ最短？で Ruby on Rails on Docker on AWS のアプリを公開するぞ。](https://qiita.com/at-946/items/1e8acea19cc0b9f31b98)  
 [Ruby on Rails 6 実践ガイド](https://www.oiax.jp/jissen_rails6)
