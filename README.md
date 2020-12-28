@@ -1,17 +1,21 @@
 # references
 
-![reference-book](/images/reference-book.png)
+![reference-book](./images/reference-book.png)
 
-学習した内容や作業ログを記録しています
+初学時のインプットや作業ログをドキュメントとして記録します  
+特にブログ等で発信できない粒度のインプットを保存します  
 
+- [aws-certification](https://github.com/krtsato/references/tree/master/aws-certification)
+  - AWS 資格対策のため取り組んだ教材
+  - 不正解の問題リスト
 - [golang](https://github.com/krtsato/references/tree/master/golang)
   - Go の言語仕様
-  - スニペット
+  - 就活時代のコーディングテスト対策
 - images
   - 各 .md ファイルから参照する画像ファイル
 - [react-redux-ts](https://github.com/krtsato/references/tree/master/react-redux-ts)
   - React の言語仕様
   - Redux の設計
 - [ruby-rails](https://github.com/krtsato/references/tree/master/ruby-rails)
-  - Rails の作業ログ・設計
+  - Rails の作業ログ
   - テストの書き方
